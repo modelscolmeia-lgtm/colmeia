@@ -121,6 +121,18 @@ export function mensagemPagamento() {
   );
 }
 
+// Mensagem de boas-vindas / como usar o ticket (referências, conversa, acompanhamento).
+export function mensagemAtendimento() {
+  return (
+    `💬 **Como funciona por aqui**\n` +
+    `Este ticket é o seu canal direto com o artista. Fique à vontade para:\n` +
+    `• Enviar **imagens de referência** do seu model 🖼️\n` +
+    `• Tirar dúvidas e **conversar sobre os detalhes** do personagem\n` +
+    `• Acompanhar a **produção** — o bot avisa aqui quando o pedido entra na fila, começa a ser feito e é concluído\n\n` +
+    `Fique de olho no ticket para mensagens do artista e novidades sobre o seu pedido. 🐝`
+  );
+}
+
 /**
  * Cria o canal/ticket do pedido e posta as informações.
  * @returns {{ canalId, canalUrl } | null}
@@ -180,9 +192,10 @@ export async function abrirTicket(pedido) {
     // Quem receber o ping: mention (se logou pelo Discord) → @handle informado → nome.
     const clienteRef = clienteDiscordId ? `<@${clienteDiscordId}>` : pedido.discordUsuario || nomeCliente;
 
-    // 1) o orçamento formatado (com ping no cliente)   2) a forma de pagamento
+    // 1) orçamento formatado (com ping)  2) forma de pagamento  3) como usar o ticket
     await canal.send(mensagemOrcamento(pedido, clienteRef));
     await canal.send(mensagemPagamento());
+    await canal.send(mensagemAtendimento());
 
     return { canalId: canal.id, canalUrl: `https://discord.com/channels/${DISCORD_GUILD_ID}/${canal.id}` };
   } catch (e) {
