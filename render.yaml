@@ -1,0 +1,61 @@
+# Blueprint de deploy do backend no Render (https://render.com).
+# No painel do Render: New > Blueprint, aponte para este repositório.
+# As variáveis com sync:false você preenche no dashboard (não ficam no repo).
+services:
+  - type: web
+    name: colmeia-api
+    runtime: node
+    rootDir: backend
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: MONGO_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_SENHA
+        sync: false
+      - key: DISCORD_BOT_TOKEN
+        sync: false
+      - key: DISCORD_GUILD_ID
+        sync: false
+      - key: DISCORD_TICKET_CATEGORY_ID
+        sync: false
+      - key: DISCORD_CONVITE
+        sync: false
+      - key: PIX_CHAVE
+        sync: false
+      - key: PIX_NOME
+        sync: false
+      - key: DISCORD_CLIENT_ID
+        sync: false
+      - key: DISCORD_CLIENT_SECRET
+        sync: false
+      - key: DISCORD_REDIRECT_URI
+        sync: false
+      - key: DISCORD_ADMIN_IDS
+        sync: false
+      - key: CLOUDINARY_URL
+        sync: false
+      - key: CORS_ORIGIN
+        sync: false
+      - key: APP_URL
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      - key: EMAIL_ARTISTA
+        sync: false

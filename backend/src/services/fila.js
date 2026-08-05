@@ -1,0 +1,76 @@
+import Pedido from '../models/Pedido.js';
+import {
+  notificarClienteEmProducao,
+  notificarClienteProximoNaFila,
+} from './email.js';
+import { postarNoTicket } from './discord.js';
+
+/**
+ * Próxima posição livre na fila (maior posicaoFila atual + 1),
+ * considerando pedidos que já estão na fila ou em produção.
+ */
+async function proximaPosicaoFila() {
+  const ultimo = await Pedido.findOne({
+    status: { $in: ['fila_producao', 'em_producao'] },
+  })
+    .sort({ posicaoFila: -1 })
+    .select('posicaoFila');
+
+  return (ultimo?.posicaoFila ?? 0) + 1;
+}
+
+/**
+ * Promove o próximo pedido da fila para "em_producao", mas só se
+ * não houver nenhum pedido já em produção (produção é uma de cada vez).
+ * Retorna o pedido promovido ou null.
+ */
+export async function promoverProximo() {
+  const emProducao = await Pedido.findOne({ status: 'em_producao' });
+  if (emProducao) return null;
+
+  const proximo = await Pedido.findOne({ status: 'fila_producao' }).sort({
+    posicaoFila: 1,
+  });
+  if (!proximo) return null;
+
+  proximo.status = 'em_producao';
+  proximo.dataEntrouProducao = new Date();
+  await proximo.save();
+
+  // avisa quem entrou em produção (e-mail + ticket do Discord)
+  notificarClienteEmProducao(proximo);
+  postarNoTicket(proximo, '🛠️ **A produção do seu pedido começou!** Prazo estimado: 20 a 45 dias.');
+
+  // avisa o novo primeiro da fila que ele é o próximo
+  const novoTopo = await Pedido.findOne({ status: 'fila_producao' }).sort({ posicaoFila: 1 });
+  if (novoTopo) {
+    notificarClienteProximoNaFila(novoTopo);
+    postarNoTicket(novoTopo, '⏫ Você é o **próximo da fila** — sua produção começa em breve.');
+  }
+
+  return proximo;
+}
+
+/**
+ * Coloca um pedido pago na fila de produção: atribui posição e,
+ * se ninguém estiver em produção, já o promove para "em_producao".
+ */
+export async function entrarNaFila(pedido) {
+  pedido.status = 'fila_producao';
+  pedido.posicaoFila = await proximaPosicaoFila();
+  await pedido.save();
+
+  const promovido = await promoverProximo();
+
+  // Se não foi promovido (já há outro em produção) e este pedido é o primeiro
+  // da fila de espera, avisa que ele é o próximo a entrar em produção.
+  const fuiPromovido = promovido && String(promovido._id) === String(pedido._id);
+  if (!fuiPromovido) {
+    const emProducao = await Pedido.findOne({ status: 'em_producao' });
+    const front = await Pedido.findOne({ status: 'fila_producao' }).sort({ posicaoFila: 1 });
+    if (emProducao && front && String(front._id) === String(pedido._id)) {
+      notificarClienteProximoNaFila(pedido);
+    }
+  }
+  return pedido;
+}

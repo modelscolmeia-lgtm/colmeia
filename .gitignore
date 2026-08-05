@@ -1,0 +1,23 @@
+# dependências
+node_modules/
+
+# variáveis de ambiente (NUNCA commitar segredos)
+.env
+.env.local
+.env.*.local
+
+# builds
+dist/
+build/
+
+# logs
+*.log
+npm-debug.log*
+
+# sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# config local do Claude Code (específico da máquina)
+.claude/settings.local.json
