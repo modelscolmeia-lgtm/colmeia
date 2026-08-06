@@ -181,7 +181,7 @@ Este é o catálogo a ser inserido via seed script. As imagens de exemplo ainda 
 | Roupas 3D | roupas-3d | múltipla |
 | Armaduras | armaduras | única |
 | Acessórios | acessorios | múltipla |
-| Pets (só voadores) | pets | múltipla |
+| Pets | pets | múltipla + quantidade |
 
 #### Skin
 - Vanilla Simples — R$10
@@ -235,7 +235,9 @@ Este é o catálogo a ser inserido via seed script. As imagens de exemplo ainda 
 - Espada no Model — R$25
 - Acessório Simples — R$6
 
-#### Pets (somente voadores, junto do model)
+#### Pets (junto do model)
+> Antes eram "somente voadores"; agora são **pets prontos** (sem restrição). O artista vai
+> cadastrar os pets prontos no catálogo (via Gerenciar catálogo), com cores/imagens.
 - Simples — R$45
 - Médio — R$60
 - Complexo — R$75
@@ -420,7 +422,19 @@ buildam limpos, sem erros/warnings no console.
   `DISCORD_CONVITE`, `PIX_CHAVE`, `PIX_NOME` (+ `VITE_DISCORD_CONVITE` no front). Sem token →
   **modo simulação** (loga no console). Convive com o Ticket Tool no mesmo servidor (não usa o
   Ticket Tool; é um bot próprio). O cliente informa o `@` do Discord ao aceitar; o link do
-  ticket fica em `pedido.discordCanalUrl`.
+  ticket fica em `pedido.discordCanalUrl`. A 3ª mensagem do ticket (`mensagemAtendimento`)
+  explica que o cliente pode mandar **referências**, **conversar** e **acompanhar a produção** por lá.
+- **Login só por Discord**: as telas de Login/Cadastro mostram **apenas** o botão "Entrar com
+  Discord" (com a logo oficial em `components/BotaoDiscord.jsx`); o formulário de e-mail/senha foi
+  removido da UI. Admin continua sendo definido por `DISCORD_ADMIN_IDS`. As rotas de e-mail no
+  backend seguem existindo (reserva), sem link na interface.
+- **Catálogo — "Salvar tudo"**: em `pages/AdminCatalogo.jsx` as edições de variantes ficam em
+  memória (marcadas como "não salvo") e salvam **em lote** num botão único (barra fixa no topo +
+  rodapé), em vez de salvar 1 a 1. Tem também **busca** por variante/categoria.
+- **Busca**: barras de busca (client-side, helper `normaliza` em `utils/pedido.js`) no catálogo,
+  cupons, fila, painel do admin (por cliente/e-mail/nº) e em "Meus pedidos" (que agora mostra o `#nº`).
+- **Deploy**: no ar — frontend na **Vercel**, backend no **Render** (free), banco no **Atlas**,
+  imagens no **Cloudinary**. Repo: `modelscolmeia-lgtm/colmeia` (GitHub). Ver `DEPLOY.md`.
 
 ### Como rodar
 ```
@@ -466,7 +480,10 @@ Admin de teste: **admin@colmeia.com / colmeia123** (criado pelo seed; trocar em 
 
 - **ESM**: o backend usa `"type": "module"` no package.json — todos os imports são `import/export`, não `require`.
 - **Admin inicial**: o seed cria/promove `admin@colmeia.com`. Fora isso, promoção é manual no MongoDB (campo `role: "admin"`). Cadastro público sempre cria `cliente`.
-- **Pets**: somente voadores estão no catálogo. Pets terrestres só via campo "Pet Específico" (texto livre).
-- **Imagens de exemplo**: ainda sem definição de onde hospedar. Opções futuras: Cloudinary (free tier), ImgBB, ou upload direto no Atlas (não recomendado). A definir.
+- **Pets**: agora são **pets prontos** (a restrição "somente voadores" saiu). A categoria foi
+  renomeada de "Pets (somente voadores)" para **"Pets"**; o artista cadastra os pets prontos no
+  catálogo (com cores/imagens). Pets fora do catálogo ainda via campo "Pet Específico" (texto livre).
+- **Imagens de exemplo**: hospedadas no **Cloudinary** em produção (via `CLOUDINARY_URL`;
+  `services/upload.js`). Sem essa variável, cai pro disco local (efêmero no Render free). Já configurado no deploy.
 - **Tema visual (atual)**: estilo **Minecraft pixel/retro** com **dois temas** (escuro = padrão, e claro), trocáveis pelo toggle na navbar e persistidos em `localStorage`. Fonte **VT323** (self-hostada em `frontend/public/fonts/vt323.woff2`, `@font-face` no `index.css`). Paleta base: mel `#ffbd26` / mel-escuro `#f09616`, terra `#5d3b23`, grama `#5b8c35`, fundo creme listrado `#fef3c7` (claro) / marrom escuro `#1a1510` (escuro). Bordas grossas, sombras "pixel", cantos retos, botões com `translateY` no `:active`. O CSS usa **tokens por tema** (`[data-theme='dark'|'light']`); as cores de cada elemento vêm desses tokens. Os aliases antigos (`--gold`, `--card`, `--card-2`) seguem definidos nos dois temas (usados em estilos inline). Baseado nos arquivos de referência do portfólio do amigo. Para mudar o tema padrão, altere o fallback `'dark'` no script do `index.html` e no `ThemeToggle`.
 - **Modo simulação do Pix**: ativo enquanto `MERCADOPAGO_ACCESS_TOKEN` for o placeholder. Ver `backend/src/services/mercadopago.js`.
