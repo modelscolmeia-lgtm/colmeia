@@ -2,13 +2,14 @@ import { useEffect, useState } from 'react';
 import Layout from '../components/Layout';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
-import { statusLabel, janelaPrazo } from '../utils/pedido';
+import { statusLabel, janelaPrazo, normaliza } from '../utils/pedido';
 
 export default function Fila() {
   const { token } = useAuth();
   const [fila, setFila] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState('');
+  const [busca, setBusca] = useState('');
 
   useEffect(() => {
     api
@@ -26,12 +27,26 @@ export default function Fila() {
         pedido entra em produção.
       </p>
 
+      {fila.length > 0 && (
+        <input
+          placeholder="🔎 Buscar por cliente ou posição..."
+          value={busca}
+          onChange={(e) => setBusca(e.target.value)}
+          style={{ marginBottom: 12 }}
+        />
+      )}
+
       {carregando && <p className="muted">Carregando...</p>}
       {erro && <p className="erro">{erro}</p>}
       {!carregando && !fila.length && <div className="card center muted">A fila está vazia no momento.</div>}
 
       <div className="stack">
-        {fila.map((item) => (
+        {fila
+          .filter((item) => {
+            const q = normaliza(busca.trim());
+            return !q || normaliza(item.cliente).includes(q) || String(item.posicao).includes(q);
+          })
+          .map((item) => (
           <div
             className="card"
             key={item.pedidoId}

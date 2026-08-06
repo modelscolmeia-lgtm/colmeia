@@ -47,7 +47,7 @@ export default function Home() {
         <h3 style={{ marginTop: 0 }}>O que dá pra personalizar?</h3>
         <p className="muted">
           Skin, cabelo, chifres, orelhas, expressões, caudas, asas, roupas 3D, armaduras,
-          acessórios e pets voadores. Também dá pra encomendar itens avulsos como espadas, cajados
+          acessórios e pets. Também dá pra encomendar itens avulsos como espadas, cajados
           e escudos — ou descrever algo totalmente seu.
         </p>
       </div>

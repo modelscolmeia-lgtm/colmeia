@@ -110,7 +110,7 @@ const CATALOGO = [
     ],
   },
   {
-    nome: 'Pets (somente voadores)', slug: 'pets', tipo: 'model', ordem: 12,
+    nome: 'Pets', slug: 'pets', tipo: 'model', ordem: 12,
     permiteMultiplaSelecao: true, permiteQuantidade: true,
     variantes: [
       { nome: 'Simples', preco: [45, null] },

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
+import { normaliza } from '../utils/pedido';
 
 function NovoCupom({ token, onCriado }) {
   const vazio = { codigo: '', tipo: 'percentual', valor: '', usosPorUsuario: '', descricao: '' };
@@ -64,6 +65,7 @@ export default function AdminCupons() {
   const { token } = useAuth();
   const [cupons, setCupons] = useState([]);
   const [erro, setErro] = useState('');
+  const [busca, setBusca] = useState('');
 
   const carregar = useCallback(async () => {
     try {
@@ -98,8 +100,22 @@ export default function AdminCupons() {
       <NovoCupom token={token} onCriado={carregar} />
       {erro && <p className="erro">{erro}</p>}
 
+      {cupons.length > 0 && (
+        <input
+          placeholder="🔎 Buscar cupom por código ou descrição..."
+          value={busca}
+          onChange={(e) => setBusca(e.target.value)}
+          style={{ marginTop: 16 }}
+        />
+      )}
+
       <div className="stack" style={{ marginTop: 16 }}>
-        {cupons.map((c) => (
+        {cupons
+          .filter((c) => {
+            const q = normaliza(busca.trim());
+            return !q || normaliza(c.codigo).includes(q) || normaliza(c.descricao).includes(q);
+          })
+          .map((c) => (
           <div className="card" key={c._id} style={{ opacity: c.ativo ? 1 : 0.55 }}>
             <div className="between">
               <div>

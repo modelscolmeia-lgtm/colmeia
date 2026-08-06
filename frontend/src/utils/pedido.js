@@ -5,6 +5,10 @@ export function formatBRL(valor) {
   return 'R$ ' + Number(valor).toFixed(2).replace('.', ',');
 }
 
+// Normaliza texto para busca: minúsculo e sem acento.
+export const normaliza = (s) =>
+  (s ?? '').toString().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+
 // Faixa de preço de uma variante: fixo ("R$ 10") ou intervalo ("R$ 25 a 35").
 export function faixaPreco(variante) {
   if (variante.precoMax && variante.precoMax !== variante.precoMin) {
@@ -55,7 +59,7 @@ export const ITENS_PERSONALIZADOS = [
   },
   {
     tipo: 'Pet Específico',
-    placeholder: 'Descreva um pet (inclusive terrestres, fora do catálogo)',
+    placeholder: 'Descreva um pet que você queira, fora do catálogo',
     dica: 'Valor definido pelo artista',
   },
 ];

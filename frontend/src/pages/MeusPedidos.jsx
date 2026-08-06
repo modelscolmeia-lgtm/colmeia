@@ -3,13 +3,14 @@ import { Link } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
-import { formatBRL, statusLabel, STATUS_INFO } from '../utils/pedido';
+import { formatBRL, statusLabel, STATUS_INFO, normaliza } from '../utils/pedido';
 
 export default function MeusPedidos() {
   const { token } = useAuth();
   const [pedidos, setPedidos] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState('');
+  const [busca, setBusca] = useState('');
 
   useEffect(() => {
     api
@@ -35,6 +36,15 @@ export default function MeusPedidos() {
         <Link to="/montar"><button className="pequeno">+ Novo pedido</button></Link>
       </div>
 
+      {pedidos.length > 0 && (
+        <input
+          placeholder="🔎 Buscar por número, tipo ou status..."
+          value={busca}
+          onChange={(e) => setBusca(e.target.value)}
+          style={{ margin: '12px 0' }}
+        />
+      )}
+
       {carregando && <p className="muted">Carregando...</p>}
       {erro && <p className="erro">{erro}</p>}
       {!carregando && !pedidos.length && (
@@ -45,14 +55,26 @@ export default function MeusPedidos() {
       )}
 
       <div className="stack">
-        {pedidos.map((p) => {
+        {pedidos
+          .filter((p) => {
+            const q = normaliza(busca.trim());
+            if (!q) return true;
+            const alvo = normaliza(
+              `${p.numero ?? ''} ${p.tipo === 'model' ? 'model personalizado' : 'item avulso'} ${statusLabel(p.status)}`
+            );
+            return alvo.includes(q);
+          })
+          .map((p) => {
           const info = STATUS_INFO[p.status] || {};
           return (
             <Link to={`/pedido/${p._id}`} key={p._id} style={{ textDecoration: 'none', color: 'inherit' }}>
               <div className="card">
                 <div className="between">
                   <div>
-                    <strong>{p.tipo === 'model' ? 'Model personalizado' : 'Item avulso'}</strong>
+                    <strong>
+                      {p.numero ? <span className="preco" style={{ marginRight: 6 }}>#{p.numero}</span> : null}
+                      {p.tipo === 'model' ? 'Model personalizado' : 'Item avulso'}
+                    </strong>
                     <div className="muted" style={{ fontSize: 13 }}>
                       {resumoItens(p)} · {new Date(p.createdAt).toLocaleDateString('pt-BR')}
                     </div>

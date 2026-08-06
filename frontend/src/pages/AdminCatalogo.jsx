@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
-import { imagemUrl } from '../utils/pedido';
+import { imagemUrl, normaliza } from '../utils/pedido';
 
 // Botão que abre o seletor de arquivo e faz upload; devolve a URL via onUrl.
 function UploadBtn({ token, onUrl, label = 'Enviar imagem' }) {
@@ -71,52 +71,21 @@ function Thumb({ url, size = 48 }) {
   );
 }
 
-// Linha editável de uma variante.
-function VarianteRow({ variante, token, onMudou }) {
-  const [v, setV] = useState(variante);
-  const [salvando, setSalvando] = useState(false);
-  const [msg, setMsg] = useState('');
-  const set = (campo, val) => setV((x) => ({ ...x, [campo]: val }));
-
-  useEffect(() => setV(variante), [variante]);
-
-  // cores (troca a imagem no montador — ex: pets prontos)
+// Linha editável de uma variante (controlada: reporta as edições ao pai; salva no "Salvar tudo").
+const VarianteRow = memo(function VarianteRow({ variante: v, id, dirty, token, onChange }) {
+  const set = (campo, val) => onChange(id, { [campo]: val });
   const cores = v.cores || [];
-  const setCor = (i, campo, val) => setV((x) => ({ ...x, cores: (x.cores || []).map((c, idx) => (idx === i ? { ...c, [campo]: val } : c)) }));
-  const addCor = () => setV((x) => ({ ...x, cores: [...(x.cores || []), { nome: '', imagem: '' }] }));
-  const removerCor = (i) => setV((x) => ({ ...x, cores: (x.cores || []).filter((_, idx) => idx !== i) }));
-
-  async function salvar() {
-    setSalvando(true);
-    setMsg('');
-    try {
-      await api.put(
-        `/admin/variantes/${v._id}`,
-        {
-          nome: v.nome,
-          precoMin: Number(v.precoMin) || 0,
-          precoMax: v.precoMax === '' || v.precoMax == null ? null : Number(v.precoMax),
-          descricao: v.descricao || '',
-          imagemExemplo: v.imagemExemplo || '',
-          cores: (v.cores || []).filter((c) => c.nome?.trim()).map((c) => ({ nome: c.nome.trim(), imagem: c.imagem || '' })),
-          ativo: !!v.ativo,
-        },
-        token
-      );
-      setMsg('✓ salvo');
-      onMudou();
-      setTimeout(() => setMsg(''), 1500);
-    } catch (e) {
-      setMsg(e.message);
-    } finally {
-      setSalvando(false);
-    }
-  }
+  const setCor = (i, campo, val) => onChange(id, { cores: cores.map((c, idx) => (idx === i ? { ...c, [campo]: val } : c)) });
+  const addCor = () => onChange(id, { cores: [...cores, { nome: '', imagem: '' }] });
+  const removerCor = (i) => onChange(id, { cores: cores.filter((_, idx) => idx !== i) });
 
   return (
     <div
       className="card"
-      style={{ background: 'var(--card-2)', marginBottom: 10, opacity: v.ativo ? 1 : 0.55 }}
+      style={{
+        background: 'var(--card-2)', marginBottom: 10, opacity: v.ativo ? 1 : 0.55,
+        outline: dirty ? '2px solid var(--accent)' : 'none',
+      }}
     >
       <div className="row" style={{ alignItems: 'flex-start', gap: 12 }}>
         <Thumb url={v.imagemExemplo} />
@@ -168,18 +137,13 @@ function VarianteRow({ variante, token, onMudou }) {
               <input type="checkbox" checked={!!v.ativo} onChange={(e) => set('ativo', e.target.checked)} />
               <span>Ativa (aparece no catálogo)</span>
             </label>
-            <div className="row">
-              {msg && <span className={msg.startsWith('✓') ? 'ok' : 'erro'} style={{ fontSize: 15 }}>{msg}</span>}
-              <button className="pequeno" onClick={salvar} disabled={salvando}>
-                {salvando ? 'Salvando...' : 'Salvar'}
-              </button>
-            </div>
+            {dirty && <span className="badge warn" style={{ fontSize: 13 }}>não salvo</span>}
           </div>
         </div>
       </div>
     </div>
   );
-}
+});
 
 // Formulário para adicionar uma variante nova a uma categoria.
 function NovaVariante({ categoriaId, token, onCriado }) {
@@ -195,7 +159,7 @@ function NovaVariante({ categoriaId, token, onCriado }) {
     setSalvando(true);
     setErro('');
     try {
-      await api.post(
+      const nova = await api.post(
         '/admin/variantes',
         {
           categoria: categoriaId,
@@ -210,7 +174,7 @@ function NovaVariante({ categoriaId, token, onCriado }) {
       );
       setForm(vazio);
       setAberto(false);
-      onCriado();
+      onCriado(nova);
     } catch (e) {
       setErro(e.message);
     } finally {
@@ -272,7 +236,7 @@ function NovaCategoria({ token, onCriado }) {
     setSalvando(true);
     setErro('');
     try {
-      await api.post(
+      const nova = await api.post(
         '/admin/categorias',
         {
           nome: form.nome.trim(),
@@ -286,7 +250,7 @@ function NovaCategoria({ token, onCriado }) {
       );
       setForm(vazio);
       setAberto(false);
-      onCriado();
+      onCriado(nova);
     } catch (e) {
       setErro(e.message);
     } finally {
@@ -338,7 +302,7 @@ function NovaCategoria({ token, onCriado }) {
 }
 
 // Seção de categorias (Model ou Itens avulsos).
-function Secao({ titulo, categorias, token, onMudou }) {
+function Secao({ titulo, categorias, token, dirty, onChangeVariante, onVarianteCriada }) {
   if (!categorias.length) return null;
   return (
     <>
@@ -356,9 +320,9 @@ function Secao({ titulo, categorias, token, onMudou }) {
           </div>
           <hr className="divider" />
           {cat.variantes.map((v) => (
-            <VarianteRow key={v._id} variante={v} token={token} onMudou={onMudou} />
+            <VarianteRow key={v._id} variante={v} id={v._id} dirty={dirty.has(v._id)} token={token} onChange={onChangeVariante} />
           ))}
-          <NovaVariante categoriaId={cat._id} token={token} onCriado={onMudou} />
+          <NovaVariante categoriaId={cat._id} token={token} onCriado={(nova) => onVarianteCriada(cat._id, nova)} />
         </div>
       ))}
     </>
@@ -367,15 +331,19 @@ function Secao({ titulo, categorias, token, onMudou }) {
 
 export default function AdminCatalogo() {
   const { token } = useAuth();
-  const [catalogo, setCatalogo] = useState([]);
+  const [cats, setCats] = useState([]);
+  const [dirty, setDirty] = useState(() => new Set());
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState('');
+  const [salvando, setSalvando] = useState(false);
+  const [busca, setBusca] = useState('');
 
   const carregar = useCallback(async () => {
     setErro('');
     try {
       const c = await api.get('/admin/catalogo', token);
-      setCatalogo(c);
+      setCats(c);
+      setDirty(new Set());
     } catch (e) {
       setErro(e.message);
     } finally {
@@ -387,8 +355,73 @@ export default function AdminCatalogo() {
     carregar();
   }, [carregar]);
 
-  const model = catalogo.filter((c) => c.tipo === 'model');
-  const avulso = catalogo.filter((c) => c.tipo === 'item_avulso');
+  // edições ficam só em memória (marca a variante como "não salva") até "Salvar tudo".
+  const atualizarVariante = useCallback((id, patch) => {
+    setCats((prev) =>
+      prev.map((cat) => ({
+        ...cat,
+        variantes: cat.variantes.map((v) => (v._id === id ? { ...v, ...patch } : v)),
+      }))
+    );
+    setDirty((prev) => new Set(prev).add(id));
+  }, []);
+
+  const onVarianteCriada = useCallback((catId, nova) => {
+    setCats((prev) => prev.map((cat) => (cat._id === catId ? { ...cat, variantes: [...cat.variantes, nova] } : cat)));
+  }, []);
+
+  const onCategoriaCriada = useCallback((nova) => {
+    setCats((prev) => [...prev, { ...nova, variantes: [] }]);
+  }, []);
+
+  async function salvarTudo() {
+    if (!dirty.size || salvando) return;
+    setSalvando(true);
+    setErro('');
+    try {
+      const alvos = [];
+      for (const cat of cats) for (const v of cat.variantes) if (dirty.has(v._id)) alvos.push(v);
+      await Promise.all(
+        alvos.map((v) =>
+          api.put(
+            `/admin/variantes/${v._id}`,
+            {
+              nome: v.nome,
+              precoMin: Number(v.precoMin) || 0,
+              precoMax: v.precoMax === '' || v.precoMax == null ? null : Number(v.precoMax),
+              descricao: v.descricao || '',
+              imagemExemplo: v.imagemExemplo || '',
+              cores: (v.cores || []).filter((c) => c.nome?.trim()).map((c) => ({ nome: c.nome.trim(), imagem: c.imagem || '' })),
+              ativo: !!v.ativo,
+            },
+            token
+          )
+        )
+      );
+      await carregar(); // recarrega do servidor e limpa o "não salvo"
+    } catch (e) {
+      setErro('Erro ao salvar: ' + e.message);
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  // Filtro de busca (por nome da variante, ou nome/slug da categoria).
+  const q = normaliza(busca.trim());
+  const filtrar = (lista) => {
+    if (!q) return lista;
+    return lista
+      .map((cat) => {
+        const catMatch = normaliza(cat.nome).includes(q) || normaliza(cat.slug).includes(q);
+        const vars = catMatch ? cat.variantes : cat.variantes.filter((v) => normaliza(v.nome).includes(q));
+        if (!catMatch && !vars.length) return null;
+        return { ...cat, variantes: vars };
+      })
+      .filter(Boolean);
+  };
+
+  const model = filtrar(cats.filter((c) => c.tipo === 'model'));
+  const avulso = filtrar(cats.filter((c) => c.tipo === 'item_avulso'));
 
   return (
     <Layout>
@@ -397,19 +430,54 @@ export default function AdminCatalogo() {
         <Link to="/admin"><button className="secundario pequeno">← Voltar ao painel</button></Link>
       </div>
       <p className="muted">
-        Edite preços, imagens e disponibilidade. Variantes desativadas somem do catálogo do
-        cliente, mas continuam aqui para reativar.
+        Edite preços, imagens e disponibilidade. As alterações ficam marcadas como
+        <strong> não salvas</strong> até você clicar em <strong>Salvar tudo</strong>.
       </p>
 
-      <div style={{ margin: '12px 0' }}>
-        <NovaCategoria token={token} onCriado={carregar} />
+      {/* Barra fixa de salvar (aparece quando há alterações pendentes) */}
+      {dirty.size > 0 && (
+        <div
+          className="card"
+          style={{
+            position: 'sticky', top: 8, zIndex: 20, marginBottom: 12,
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+            borderColor: 'var(--accent)',
+          }}
+        >
+          <strong>{dirty.size} alteração(ões) não salva(s)</strong>
+          <div className="btn-row">
+            <button className="secundario pequeno" onClick={carregar} disabled={salvando}>Descartar</button>
+            <button onClick={salvarTudo} disabled={salvando}>{salvando ? 'Salvando...' : 'Salvar tudo'}</button>
+          </div>
+        </div>
+      )}
+
+      <div className="row" style={{ gap: 8, margin: '12px 0', flexWrap: 'wrap' }}>
+        <input
+          placeholder="🔎 Buscar variante ou categoria..."
+          value={busca}
+          onChange={(e) => setBusca(e.target.value)}
+          style={{ flex: 1, minWidth: 220 }}
+        />
+        <NovaCategoria token={token} onCriado={onCategoriaCriada} />
       </div>
 
       {carregando && <p className="muted">Carregando...</p>}
       {erro && <p className="erro">{erro}</p>}
 
-      <Secao titulo="Categorias do Model" categorias={model} token={token} onMudou={carregar} />
-      <Secao titulo="Itens avulsos" categorias={avulso} token={token} onMudou={carregar} />
+      <Secao titulo="Categorias do Model" categorias={model} token={token} dirty={dirty} onChangeVariante={atualizarVariante} onVarianteCriada={onVarianteCriada} />
+      <Secao titulo="Itens avulsos" categorias={avulso} token={token} dirty={dirty} onChangeVariante={atualizarVariante} onVarianteCriada={onVarianteCriada} />
+
+      {!carregando && !model.length && !avulso.length && (
+        <div className="card center muted">Nada encontrado{q ? ` para "${busca}"` : ''}.</div>
+      )}
+
+      {/* Salvar tudo também no rodapé, por conveniência */}
+      {dirty.size > 0 && (
+        <div className="btn-row" style={{ marginTop: 16, justifyContent: 'flex-end' }}>
+          <button onClick={salvarTudo} disabled={salvando}>{salvando ? 'Salvando...' : `Salvar tudo (${dirty.size})`}</button>
+        </div>
+      )}
     </Layout>
   );
 }

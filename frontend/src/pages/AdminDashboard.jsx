@@ -5,7 +5,7 @@ import AdminEditarItens from '../components/AdminEditarItens';
 import ItemImagem from '../components/ItemImagem';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
-import { formatBRL, faixaPreco, statusLabel, STATUS_INFO } from '../utils/pedido';
+import { formatBRL, faixaPreco, statusLabel, STATUS_INFO, normaliza } from '../utils/pedido';
 
 const ABAS = [
   { status: 'pendente_aprovacao', label: 'A orçar' },
@@ -218,6 +218,7 @@ function ResumoItens({ pedido }) {
 export default function AdminDashboard() {
   const { token } = useAuth();
   const [aba, setAba] = useState('pendente_aprovacao');
+  const [busca, setBusca] = useState('');
   const [pedidos, setPedidos] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState('');
@@ -295,6 +296,15 @@ export default function AdminDashboard() {
         ))}
       </div>
 
+      {pedidos.length > 0 && (
+        <input
+          placeholder="🔎 Buscar por cliente, e-mail ou número..."
+          value={busca}
+          onChange={(e) => setBusca(e.target.value)}
+          style={{ marginBottom: 12 }}
+        />
+      )}
+
       {carregando && <p className="muted">Carregando...</p>}
       {erro && <p className="erro">{erro}</p>}
       {!carregando && !pedidos.length && (
@@ -302,7 +312,13 @@ export default function AdminDashboard() {
       )}
 
       <div className="stack">
-        {pedidos.map((p) => {
+        {pedidos
+          .filter((p) => {
+            const q = normaliza(busca.trim());
+            if (!q) return true;
+            return normaliza(`${p.numero ?? ''} ${p.cliente?.nome ?? ''} ${p.cliente?.email ?? ''}`).includes(q);
+          })
+          .map((p) => {
           const info = STATUS_INFO[p.status] || {};
           return (
             <div className="card" key={p._id}>
