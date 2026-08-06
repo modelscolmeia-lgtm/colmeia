@@ -14,9 +14,7 @@ export default function Layout({ children, largura = 'container' }) {
   return (
     <>
       <nav className="nav">
-        <NavLink to="/" className="nav-logo" aria-label="Colmeia — início">
-          <img src="/logo.png" alt="Colmeia" className="nav-logo-img" />
-        </NavLink>
+        <NavLink to="/" className="nav-logo">Colmeia</NavLink>
 
         {usuario ? (
           <>
