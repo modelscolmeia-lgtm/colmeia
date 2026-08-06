@@ -15,9 +15,9 @@ export default function Home() {
   return (
     <Layout>
       <section className="hero">
-        <h1>🐝 Colmeia</h1>
+        <h1>🦍 Colmeia</h1>
         <p className="lead">
-          Encomende seu <strong>Minecraft custom model</strong> do jeitinho que você imaginou —
+          Encomende seu <strong>Minecraft custom model</strong> do jeitinho que você imaginou, 
           monte cada detalhe do personagem e acompanhe a produção do começo ao fim.
         </p>
         <div className="btn-row" style={{ justifyContent: 'center' }}>
