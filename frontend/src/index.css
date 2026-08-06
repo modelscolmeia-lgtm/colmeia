@@ -160,6 +160,15 @@ h3 { font-size: 1.6rem; }
   letter-spacing: 0.04em;
   text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.15);
   margin-right: auto;
+  display: inline-flex;
+  align-items: center;
+  padding: 0;
+}
+.nav a.nav-logo:hover { background: transparent; }
+.nav-logo-img {
+  height: 40px;
+  width: auto;
+  display: block;
 }
 .nav a, .nav button.link {
   color: var(--nav-text);
