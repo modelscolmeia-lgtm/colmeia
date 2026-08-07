@@ -37,6 +37,18 @@ export default function Layout({ children, largura = 'container' }) {
         )}
       </nav>
       <main className={largura}>{children}</main>
+
+      <footer className="site-footer">
+        <a
+          href="https://otavio-ramalho.vercel.app/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="credito"
+        >
+          <img src="/penguin.png" alt="" className="credito-logo" />
+          Desenvolvido por Pinguim
+        </a>
+      </footer>
     </>
   );
 }
