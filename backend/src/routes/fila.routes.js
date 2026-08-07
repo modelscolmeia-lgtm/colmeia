@@ -1,8 +1,19 @@
 import { Router } from 'express';
 import Pedido from '../models/Pedido.js';
 import { autenticar } from '../middleware/auth.js';
+import { LIMITE_FILA, contarFila } from '../services/fila.js';
 
 const router = Router();
+
+// GET /api/fila/status — quantos pedidos há na fila e se ela está cheia (bloqueia novos pedidos).
+router.get('/status', autenticar, async (req, res) => {
+  try {
+    const emFila = await contarFila();
+    res.json({ emFila, limite: LIMITE_FILA, cheia: emFila >= LIMITE_FILA });
+  } catch (err) {
+    res.status(500).json({ erro: 'Erro ao consultar a fila', detalhe: err.message });
+  }
+});
 
 // GET /api/fila — fila de produção visível para qualquer usuário logado.
 // Mostra posição, status, prazo e o primeiro nome do cliente (sem dados sensíveis).

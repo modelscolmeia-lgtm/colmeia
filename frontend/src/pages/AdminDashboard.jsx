@@ -4,6 +4,7 @@ import Layout from '../components/Layout';
 import AdminEditarItens from '../components/AdminEditarItens';
 import ItemImagem from '../components/ItemImagem';
 import { useAuth } from '../context/AuthContext';
+import { useDialog } from '../context/DialogProvider';
 import { api } from '../services/api';
 import { formatBRL, faixaPreco, statusLabel, STATUS_INFO, normaliza } from '../utils/pedido';
 
@@ -217,6 +218,7 @@ function ResumoItens({ pedido }) {
 
 export default function AdminDashboard() {
   const { token } = useAuth();
+  const { confirmar } = useDialog();
   const [aba, setAba] = useState('pendente_aprovacao');
   const [busca, setBusca] = useState('');
   const [pedidos, setPedidos] = useState([]);
@@ -252,7 +254,11 @@ export default function AdminDashboard() {
   }, [carregar]);
 
   async function concluir(id) {
-    if (!confirm('Marcar este pedido como concluído? O próximo da fila entra em produção.')) return;
+    if (!(await confirmar({
+      titulo: 'Concluir pedido',
+      mensagem: 'Marcar este pedido como concluído? O próximo da fila entra em produção.',
+      okLabel: 'Concluir',
+    }))) return;
     setAcao(true);
     try {
       await api.put(`/admin/pedidos/${id}/concluir`, null, token);
@@ -265,7 +271,11 @@ export default function AdminDashboard() {
   }
 
   async function confirmarPagamento(id) {
-    if (!confirm('Confirmar que o pagamento caiu na conta? O pedido vai para a fila de produção.')) return;
+    if (!(await confirmar({
+      titulo: 'Confirmar pagamento',
+      mensagem: 'Confirmar que o pagamento caiu na conta? O pedido vai para a fila de produção.',
+      okLabel: 'Confirmar',
+    }))) return;
     setAcao(true);
     try {
       await api.put(`/admin/pedidos/${id}/confirmar-pagamento`, null, token);

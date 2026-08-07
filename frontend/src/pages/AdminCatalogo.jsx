@@ -2,6 +2,7 @@ import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { useAuth } from '../context/AuthContext';
+import { useDialog } from '../context/DialogProvider';
 import { api } from '../services/api';
 import { imagemUrl, normaliza } from '../utils/pedido';
 
@@ -9,6 +10,7 @@ import { imagemUrl, normaliza } from '../utils/pedido';
 function UploadBtn({ token, onUrl, label = 'Enviar imagem' }) {
   const inputRef = useRef(null);
   const [enviando, setEnviando] = useState(false);
+  const { avisar } = useDialog();
 
   async function onFile(e) {
     const file = e.target.files?.[0];
@@ -18,7 +20,7 @@ function UploadBtn({ token, onUrl, label = 'Enviar imagem' }) {
       const { url } = await api.upload('/admin/upload', file, token);
       onUrl(url);
     } catch (err) {
-      alert(err.message);
+      avisar({ titulo: 'Erro no upload', mensagem: err.message });
     } finally {
       setEnviando(false);
       if (inputRef.current) inputRef.current.value = '';

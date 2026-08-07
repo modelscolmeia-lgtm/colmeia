@@ -5,6 +5,15 @@ import {
 } from './email.js';
 import { postarNoTicket } from './discord.js';
 
+// Máximo de pedidos na fila de produção (em_producao + fila_producao) ao mesmo tempo.
+// Quando cheia, o cliente não consegue enviar um novo pedido. Configurável por FILA_LIMITE.
+export const LIMITE_FILA = Number(process.env.FILA_LIMITE) || 5;
+
+// Quantos pedidos estão hoje na fila de produção (contam para o limite).
+export function contarFila() {
+  return Pedido.countDocuments({ status: { $in: ['fila_producao', 'em_producao'] } });
+}
+
 /**
  * Próxima posição livre na fila (maior posicaoFila atual + 1),
  * considerando pedidos que já estão na fila ou em produção.

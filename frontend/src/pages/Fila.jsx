@@ -5,7 +5,8 @@ import { api } from '../services/api';
 import { statusLabel, janelaPrazo, normaliza } from '../utils/pedido';
 
 export default function Fila() {
-  const { token } = useAuth();
+  const { token, usuario } = useAuth();
+  const ehAdmin = usuario?.role === 'admin';
   const [fila, setFila] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState('');
@@ -27,13 +28,18 @@ export default function Fila() {
         pedido entra em produção.
       </p>
 
-      {fila.length > 0 && (
-        <input
-          placeholder="🔎 Buscar por cliente ou posição..."
-          value={busca}
-          onChange={(e) => setBusca(e.target.value)}
-          style={{ marginBottom: 12 }}
-        />
+      {ehAdmin && fila.length > 0 && (
+        <>
+          <p className="muted" style={{ marginBottom: 8 }}>
+            <strong>{fila.length}</strong> {fila.length === 1 ? 'cliente' : 'clientes'} na fila
+          </p>
+          <input
+            placeholder="🔎 Buscar por cliente ou posição..."
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            style={{ marginBottom: 12 }}
+          />
+        </>
       )}
 
       {carregando && <p className="muted">Carregando...</p>}

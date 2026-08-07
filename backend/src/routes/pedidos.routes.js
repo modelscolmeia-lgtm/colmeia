@@ -11,6 +11,7 @@ import {
   notificarArtistaPedidoAceito,
 } from '../services/email.js';
 import { abrirTicket } from '../services/discord.js';
+import { contarFila, LIMITE_FILA } from '../services/fila.js';
 
 // Status em que o cliente ainda pode cancelar o pedido (antes de aceitar/produzir).
 const CANCELAVEIS = ['pendente_aprovacao', 'orcado'];
@@ -48,6 +49,13 @@ router.post('/', autenticar, async (req, res) => {
     }
     if (!aceiteTermo?.aceito) {
       return res.status(400).json({ erro: 'É necessário aceitar o termo para enviar o pedido' });
+    }
+
+    // Fila cheia? Bloqueia novos pedidos até abrir vaga.
+    if ((await contarFila()) >= LIMITE_FILA) {
+      return res.status(409).json({
+        erro: `A fila de produção está cheia (${LIMITE_FILA} pedidos ao mesmo tempo). Aguarde abrir uma vaga para enviar um novo pedido.`,
+      });
     }
 
     const dados = {

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { useAuth } from '../context/AuthContext';
+import { useDialog } from '../context/DialogProvider';
 import { api } from '../services/api';
 import { normaliza } from '../utils/pedido';
 
@@ -63,6 +64,7 @@ function NovoCupom({ token, onCriado }) {
 
 export default function AdminCupons() {
   const { token } = useAuth();
+  const { confirmar } = useDialog();
   const [cupons, setCupons] = useState([]);
   const [erro, setErro] = useState('');
   const [busca, setBusca] = useState('');
@@ -82,7 +84,12 @@ export default function AdminCupons() {
     carregar();
   }
   async function excluir(c) {
-    if (!confirm(`Excluir o cupom ${c.codigo}?`)) return;
+    if (!(await confirmar({
+      titulo: 'Excluir cupom',
+      mensagem: `Excluir o cupom ${c.codigo}? Não dá pra desfazer.`,
+      okLabel: 'Excluir',
+      perigo: true,
+    }))) return;
     await api.delete(`/admin/cupons/${c._id}`, token);
     carregar();
   }

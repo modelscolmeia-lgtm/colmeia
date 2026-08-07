@@ -171,6 +171,7 @@ export default function MontarPedido() {
   const [erro, setErro] = useState('');
   const [enviando, setEnviando] = useState(false);
   const [modalAberto, setModalAberto] = useState(false);
+  const [fila, setFila] = useState(null); // { emFila, limite, cheia }
 
   useEffect(() => {
     api
@@ -182,6 +183,11 @@ export default function MontarPedido() {
       .catch((e) => setErro(e.message))
       .finally(() => setCarregando(false));
   }, []);
+
+  // Fila cheia bloqueia o envio de novos pedidos.
+  useEffect(() => {
+    api.get('/fila/status', token).then(setFila).catch(() => {});
+  }, [token]);
 
   // Mapa varianteId -> variante (para estimativas).
   const varPorId = useMemo(() => {
@@ -478,7 +484,20 @@ export default function MontarPedido() {
 
         {erro && <p className="erro">{erro}</p>}
 
-        <button onClick={revisarEEnviar} style={{ marginTop: 14 }}>
+        {fila?.cheia && (
+          <div className="aviso" style={{ marginTop: 12 }}>
+            🐝 <strong>A fila está cheia no momento</strong> (máximo de {fila.limite} pedidos em
+            produção ao mesmo tempo). Não é possível enviar um novo pedido agora — volte em breve,
+            assim que o artista liberar uma vaga.
+          </div>
+        )}
+
+        <button
+          onClick={revisarEEnviar}
+          style={{ marginTop: 14 }}
+          disabled={fila?.cheia}
+          title={fila?.cheia ? 'A fila está cheia no momento' : undefined}
+        >
           Revisar e enviar pedido
         </button>
       </div>

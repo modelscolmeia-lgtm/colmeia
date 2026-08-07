@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import Layout from '../components/Layout';
 import ItemImagem from '../components/ItemImagem';
 import { useAuth } from '../context/AuthContext';
+import { useDialog } from '../context/DialogProvider';
 import { api } from '../services/api';
 import { formatBRL, statusLabel, STATUS_INFO, janelaPrazo, DISCORD_CONVITE } from '../utils/pedido';
 
@@ -111,6 +112,7 @@ function CupomBox({ pedido, token, onMudou }) {
 export default function PedidoDetalhe() {
   const { id } = useParams();
   const { token } = useAuth();
+  const { confirmar } = useDialog();
   const [pedido, setPedido] = useState(null);
   const [erro, setErro] = useState('');
   const [carregando, setCarregando] = useState(true);
@@ -145,8 +147,14 @@ export default function PedidoDetalhe() {
     }
   }
 
-  function cancelar() {
-    if (window.confirm('Tem certeza que deseja cancelar este pedido? Não dá pra desfazer.')) {
+  async function cancelar() {
+    if (await confirmar({
+      titulo: 'Cancelar pedido',
+      mensagem: 'Tem certeza que deseja cancelar este pedido? Não dá pra desfazer.',
+      okLabel: 'Cancelar pedido',
+      cancelLabel: 'Voltar',
+      perigo: true,
+    })) {
       responder('cancelar');
     }
   }
