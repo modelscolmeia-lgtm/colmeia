@@ -1,13 +1,31 @@
 import Pedido from '../models/Pedido.js';
+import Config from '../models/Config.js';
 import {
   notificarClienteEmProducao,
   notificarClienteProximoNaFila,
 } from './email.js';
 import { postarNoTicket } from './discord.js';
 
+// Limite padrão (usado se ainda não houver config salva no banco). Env FILA_LIMITE ou 5.
+export const LIMITE_FILA_PADRAO = Number(process.env.FILA_LIMITE) || 5;
+
 // Máximo de pedidos na fila de produção (em_producao + fila_producao) ao mesmo tempo.
-// Quando cheia, o cliente não consegue enviar um novo pedido. Configurável por FILA_LIMITE.
-export const LIMITE_FILA = Number(process.env.FILA_LIMITE) || 5;
+// Guardado no banco (Config) e editável pelos admins no painel.
+export async function getLimiteFila() {
+  const c = await Config.findById('geral').select('filaLimite').lean();
+  return c?.filaLimite ?? LIMITE_FILA_PADRAO;
+}
+
+// Atualiza o limite (mínimo 1). Devolve o valor efetivamente salvo.
+export async function setLimiteFila(n) {
+  const limite = Math.max(1, Math.floor(Number(n) || 0));
+  const c = await Config.findByIdAndUpdate(
+    'geral',
+    { filaLimite: limite },
+    { upsert: true, new: true, setDefaultsOnInsert: true }
+  );
+  return c.filaLimite;
+}
 
 // Quantos pedidos estão hoje na fila de produção (contam para o limite).
 export function contarFila() {

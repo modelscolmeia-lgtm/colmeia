@@ -8,7 +8,7 @@ import CategoriaItem from '../models/CategoriaItem.js';
 import Variante from '../models/Variante.js';
 import Cupom from '../models/Cupom.js';
 import { autenticar, somenteAdmin } from '../middleware/auth.js';
-import { promoverProximo, entrarNaFila } from '../services/fila.js';
+import { promoverProximo, entrarNaFila, getLimiteFila, setLimiteFila } from '../services/fila.js';
 import { salvarImagem } from '../services/upload.js';
 import { notificarClienteOrcamento, notificarClienteConcluido } from '../services/email.js';
 import { postarNoTicket } from '../services/discord.js';
@@ -17,6 +17,29 @@ const router = Router();
 
 // Tudo aqui exige admin.
 router.use(autenticar, somenteAdmin);
+
+// ---- Configurações gerais (editáveis por qualquer admin) ----
+// GET /api/admin/config — lê as configs (hoje: limite da fila).
+router.get('/config', async (req, res) => {
+  try {
+    res.json({ filaLimite: await getLimiteFila() });
+  } catch (err) {
+    res.status(500).json({ erro: 'Erro ao ler configurações', detalhe: err.message });
+  }
+});
+
+// PUT /api/admin/config — atualiza o limite da fila (mínimo 1).
+router.put('/config', async (req, res) => {
+  try {
+    const n = Number(req.body.filaLimite);
+    if (!Number.isFinite(n) || n < 1) {
+      return res.status(400).json({ erro: 'O limite precisa ser um número inteiro maior ou igual a 1.' });
+    }
+    res.json({ filaLimite: await setLimiteFila(n) });
+  } catch (err) {
+    res.status(500).json({ erro: 'Erro ao salvar configurações', detalhe: err.message });
+  }
+});
 
 // ---- Upload de imagens (Cloudinary se configurado, senão disco em /uploads) ----
 const __dirname = path.dirname(fileURLToPath(import.meta.url));

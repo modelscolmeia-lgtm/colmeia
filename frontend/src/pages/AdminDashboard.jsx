@@ -228,11 +228,34 @@ export default function AdminDashboard() {
   const [editandoItens, setEditandoItens] = useState(null);
   const [acao, setAcao] = useState(false);
   const [catalogo, setCatalogo] = useState([]);
+  const [filaLimite, setFilaLimite] = useState('');
+  const [salvandoLimite, setSalvandoLimite] = useState(false);
+  const [msgLimite, setMsgLimite] = useState('');
 
   // catálogo (para o editor de itens poder adicionar variantes)
   useEffect(() => {
     api.get('/catalogo', token).then(setCatalogo).catch(() => {});
   }, [token]);
+
+  // limite da fila (editável por qualquer admin)
+  useEffect(() => {
+    api.get('/admin/config', token).then((c) => setFilaLimite(c.filaLimite)).catch(() => {});
+  }, [token]);
+
+  async function salvarLimite() {
+    setSalvandoLimite(true);
+    setMsgLimite('');
+    try {
+      const c = await api.put('/admin/config', { filaLimite: Number(filaLimite) }, token);
+      setFilaLimite(c.filaLimite);
+      setMsgLimite('✓ salvo');
+      setTimeout(() => setMsgLimite(''), 2000);
+    } catch (e) {
+      setMsgLimite(e.message);
+    } finally {
+      setSalvandoLimite(false);
+    }
+  }
 
   const carregar = useCallback(async () => {
     setCarregando(true);
@@ -292,6 +315,28 @@ export default function AdminDashboard() {
       <div className="between">
         <h1>Painel do artista</h1>
         <Link to="/admin/catalogo"><button className="secundario pequeno">Gerenciar catálogo</button></Link>
+      </div>
+
+      <div className="card" style={{ marginBottom: 16 }}>
+        <label className="row" style={{ alignItems: 'center', gap: 10, flexWrap: 'wrap', margin: 0 }}>
+          <strong>Limite de pedidos na fila:</strong>
+          <input
+            type="number"
+            min={1}
+            step={1}
+            value={filaLimite}
+            onChange={(e) => setFilaLimite(e.target.value)}
+            style={{ width: 90 }}
+          />
+          <button className="pequeno" onClick={salvarLimite} disabled={salvandoLimite || !filaLimite}>
+            {salvandoLimite ? 'Salvando...' : 'Salvar'}
+          </button>
+          {msgLimite && <span className={msgLimite.startsWith('✓') ? 'ok' : 'erro'}>{msgLimite}</span>}
+        </label>
+        <p className="muted" style={{ margin: '6px 0 0', fontSize: 13 }}>
+          Ao atingir esse número de pedidos em produção, os clientes não conseguem enviar novos
+          pedidos até abrir uma vaga.
+        </p>
       </div>
 
       <div className="btn-row" style={{ marginBottom: 16 }}>
