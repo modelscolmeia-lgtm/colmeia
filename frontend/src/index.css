@@ -191,6 +191,12 @@ h3 { font-size: 1.6rem; }
 }
 .nav-user { color: var(--nav-text); font-size: 18px; font-weight: bold; opacity: 0.95; }
 .tema-toggle { border: 2px solid var(--nav-border) !important; }
+.nav-social {
+  display: inline-flex;
+  align-items: center;
+  color: var(--nav-text);
+}
+.nav-social svg { width: 22px; height: 22px; display: block; }
 
 /* ---------- Rodapé (crédito do desenvolvedor) ---------- */
 .site-footer {
