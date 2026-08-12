@@ -190,13 +190,36 @@ h3 { font-size: 1.6rem; }
   box-shadow: var(--shadow-pixel-sm);
 }
 .nav-user { color: var(--nav-text); font-size: 18px; font-weight: bold; opacity: 0.95; }
-.tema-toggle { border: 2px solid var(--nav-border) !important; }
+/* Ícones sociais (Discord/TikTok) agrupados na navbar */
+.nav-socials { display: inline-flex; align-items: center; gap: 12px; }
 .nav-social {
   display: inline-flex;
   align-items: center;
   color: var(--nav-text);
 }
 .nav-social svg { width: 22px; height: 22px; display: block; }
+
+/* Botão flutuante de tema (circular pixel, perto da barra de scroll) */
+.tema-toggle {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 60;
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border: 3px solid var(--nav-border);
+  box-shadow: 3px 3px 0 0 var(--shadow);
+}
+.tema-toggle:hover { filter: brightness(1.06); }
+.tema-toggle:active { transform: translateY(2px); box-shadow: 1px 1px 0 0 var(--shadow); }
+.tema-toggle svg { width: 22px; height: 22px; display: block; }
 
 /* ---------- Rodapé (crédito do desenvolvedor) ---------- */
 .site-footer {
