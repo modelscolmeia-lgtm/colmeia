@@ -9,7 +9,6 @@ import {
   formatBRL,
   imagemUrl,
   ITENS_PERSONALIZADOS,
-  TERMOS,
   TERMOS_URL,
 } from '../utils/pedido';
 
@@ -167,7 +166,6 @@ export default function MontarPedido() {
   const [selecoesAvulso, setSelecoesAvulso] = useState({});
   const [personalizados, setPersonalizados] = useState({});
   const [aceite, setAceite] = useState(false);
-  const [abriuTermos, setAbriuTermos] = useState(false);
   const [erro, setErro] = useState('');
   const [enviando, setEnviando] = useState(false);
   const [modalAberto, setModalAberto] = useState(false);
@@ -518,54 +516,23 @@ export default function MontarPedido() {
         }
       >
         <p style={{ marginTop: 0 }}>
-          Antes de enviar, é <strong>obrigatório ler</strong> o documento completo de termos e
-          condições. Abra o link abaixo:
+          Leia o documento de termos e condições antes de enviar o seu pedido:
         </p>
 
-        <button
-          type="button"
-          className={abriuTermos ? 'secundario' : ''}
-          onClick={() => {
-            window.open(TERMOS_URL, '_blank', 'noopener,noreferrer');
-            setAbriuTermos(true);
-          }}
-        >
-          📄 Ler os termos e condições {abriuTermos ? '✓' : ''}
-        </button>
-
-        <details style={{ marginTop: 14 }}>
-          <summary className="muted" style={{ cursor: 'pointer' }}>Resumo dos principais pontos</summary>
-          {TERMOS.map((t) => (
-            <div className="termo-item" key={t.titulo} style={{ marginTop: 8 }}>
-              <strong>{t.titulo}</strong>
-              <div style={{ marginTop: 4 }}>{t.texto}</div>
-            </div>
-          ))}
-        </details>
+        <a href={TERMOS_URL} target="_blank" rel="noopener noreferrer" className="botao-link">
+          📄 Ler os termos e condições
+        </a>
 
         <div className="aviso" style={{ marginTop: 14 }}>
-          <strong>Importante:</strong> a leitura dos termos é responsabilidade sua. Se você não
-          ler o documento, o artista não se responsabiliza por desentendimentos sobre o que foi
-          combinado.
+          <strong>Importante:</strong> a leitura dos termos é de <strong>total responsabilidade
+          sua</strong>. Se você marcar o aceite sem ler o documento, assume total responsabilidade
+          por isso.
         </div>
 
-        <label className="pill-check" style={{ marginTop: 14, opacity: abriuTermos ? 1 : 0.5 }}>
-          <input
-            type="checkbox"
-            checked={aceite}
-            disabled={!abriuTermos}
-            onChange={(e) => setAceite(e.target.checked)}
-          />
-          <span>
-            Li o documento de termos e condições e aceito. Estou ciente de que a leitura é minha
-            responsabilidade.
-          </span>
+        <label className="pill-check" style={{ marginTop: 14 }}>
+          <input type="checkbox" checked={aceite} onChange={(e) => setAceite(e.target.checked)} />
+          <span>Li os termos e condições e aceito.</span>
         </label>
-        {!abriuTermos && (
-          <p className="muted" style={{ fontSize: 14, marginTop: 4 }}>
-            Abra o documento acima para poder marcar o aceite.
-          </p>
-        )}
         {erro && <p className="erro">{erro}</p>}
       </Modal>
     </Layout>

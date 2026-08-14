@@ -346,6 +346,22 @@ button.sucesso:hover:not(:disabled) { filter: brightness(1.12); background: var(
 button.pequeno { padding: 5px 12px; font-size: 17px; }
 .btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
 
+/* Link com aparência de botão (ex: abrir termos — funciona em qualquer navegador) */
+a.botao-link {
+  display: inline-block;
+  padding: 8px 18px;
+  border: var(--border-thin);
+  background: var(--card);
+  color: var(--text);
+  font-weight: bold;
+  font-size: 20px;
+  box-shadow: var(--shadow-pixel-sm);
+  text-decoration: none;
+  transition: transform 0.08s, box-shadow 0.08s, background 0.15s;
+}
+a.botao-link:hover { background: var(--card-2); text-decoration: none; }
+a.botao-link:active { transform: translateY(3px); box-shadow: none; }
+
 /* ---------- Badges de status ---------- */
 .badge {
   display: inline-block;

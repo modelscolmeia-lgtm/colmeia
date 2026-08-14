@@ -64,10 +64,9 @@ export const ITENS_PERSONALIZADOS = [
   },
 ];
 
-// Link para o documento completo de termos e condições.
-// Troque pela URL do seu documento (ou defina VITE_TERMOS_URL no .env do frontend).
+// Link para o documento completo de termos e condições (Google Docs).
 export const TERMOS_URL =
-  import.meta.env.VITE_TERMOS_URL || 'https://exemplo.com/termos-e-condicoes';
+  'https://docs.google.com/document/d/1xEATFuBPNWIvcDwPZIsUPPtI019aq4hS2LVCMLjTGuE/edit?usp=sharing';
 
 // Resumo dos principais pontos (o documento completo está em TERMOS_URL).
 export const TERMOS = [
