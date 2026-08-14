@@ -7,6 +7,8 @@ import Pedido from '../models/Pedido.js';
 import CategoriaItem from '../models/CategoriaItem.js';
 import Variante from '../models/Variante.js';
 import Cupom from '../models/Cupom.js';
+import Tipo from '../models/Tipo.js';
+import { listarTipos, slugify } from '../services/tipos.js';
 import { autenticar, somenteAdmin } from '../middleware/auth.js';
 import { promoverProximo, entrarNaFila, getLimiteFila, setLimiteFila } from '../services/fila.js';
 import { salvarImagem } from '../services/upload.js';
@@ -38,6 +40,52 @@ router.put('/config', async (req, res) => {
     res.json({ filaLimite: await setLimiteFila(n) });
   } catch (err) {
     res.status(500).json({ erro: 'Erro ao salvar configurações', detalhe: err.message });
+  }
+});
+
+// ---- Categorias-mãe (tipos: Model, Item Avulso, e novas) ----
+// GET /api/admin/tipos — todos (inclui inativos), para gestão.
+router.get('/tipos', async (req, res) => {
+  try {
+    res.json(await listarTipos());
+  } catch (err) {
+    res.status(500).json({ erro: 'Erro ao listar categorias-mãe', detalhe: err.message });
+  }
+});
+
+// POST /api/admin/tipos — cria uma categoria-mãe nova (nome + modo).
+router.post('/tipos', async (req, res) => {
+  try {
+    const nome = (req.body.nome || '').trim();
+    const modo = req.body.modo;
+    if (!nome) return res.status(400).json({ erro: 'Dê um nome à categoria-mãe' });
+    if (!['model', 'avulso'].includes(modo)) {
+      return res.status(400).json({ erro: 'Escolha o comportamento: "model" ou "avulso"' });
+    }
+    const slug = slugify(nome);
+    if (!slug) return res.status(400).json({ erro: 'Nome inválido' });
+    if (await Tipo.findById(slug)) {
+      return res.status(400).json({ erro: 'Já existe uma categoria-mãe com esse nome' });
+    }
+    const tipo = await Tipo.create({ _id: slug, nome, modo, ordem: Number(req.body.ordem) || 99, ativo: true });
+    res.status(201).json(tipo);
+  } catch (err) {
+    res.status(400).json({ erro: 'Erro ao criar categoria-mãe', detalhe: err.message });
+  }
+});
+
+// PUT /api/admin/tipos/:id — edita nome/ordem/visibilidade (modo e slug não mudam depois de criado).
+router.put('/tipos/:id', async (req, res) => {
+  try {
+    const patch = {};
+    if (req.body.nome !== undefined) patch.nome = String(req.body.nome).trim();
+    if (req.body.ativo !== undefined) patch.ativo = !!req.body.ativo;
+    if (req.body.ordem !== undefined) patch.ordem = Number(req.body.ordem) || 0;
+    const tipo = await Tipo.findByIdAndUpdate(req.params.id, patch, { new: true });
+    if (!tipo) return res.status(404).json({ erro: 'Categoria-mãe não encontrada' });
+    res.json(tipo);
+  } catch (err) {
+    res.status(400).json({ erro: 'Erro ao atualizar categoria-mãe', detalhe: err.message });
   }
 });
 

@@ -40,8 +40,10 @@ const pedidoSchema = new mongoose.Schema({
   numero: { type: Number },  // número sequencial do pedido (ex: #42)
   cliente: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
 
-  // 'model' usa "versoes"; 'item_avulso' (Espada/Cajado/Escudo) usa "itensAvulsos"
-  tipo: { type: String, enum: ['model', 'item_avulso'], required: true },
+  // slug da categoria-mãe (Tipo). O comportamento vem do `modo` abaixo.
+  tipo: { type: String, required: true },
+  // 'model' usa "versoes" (personagens); 'avulso' usa "itensAvulsos" (lista simples)
+  modo: { type: String, enum: ['model', 'avulso'], default: 'avulso' },
 
   versoes: [versaoModelSchema],
   itensAvulsos: [itemSelecionadoSchema],

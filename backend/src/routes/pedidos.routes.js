@@ -12,6 +12,8 @@ import {
 } from '../services/email.js';
 import { abrirTicket } from '../services/discord.js';
 import { contarFila, getLimiteFila } from '../services/fila.js';
+import Tipo from '../models/Tipo.js';
+import { garantirTiposPadrao } from '../services/tipos.js';
 
 // Status em que o cliente ainda pode cancelar o pedido (antes de aceitar/produzir).
 const CANCELAVEIS = ['pendente_aprovacao', 'orcado'];
@@ -44,9 +46,12 @@ router.post('/', autenticar, async (req, res) => {
   try {
     const { tipo, versoes, itensAvulsos, itensPersonalizados, aceiteTermo, discordUsuario } = req.body;
 
-    if (!['model', 'item_avulso'].includes(tipo)) {
+    await garantirTiposPadrao();
+    const tipoDoc = await Tipo.findById(tipo).lean();
+    if (!tipoDoc || tipoDoc.ativo === false) {
       return res.status(400).json({ erro: 'Tipo de pedido inválido' });
     }
+    const modo = tipoDoc.modo; // 'model' | 'avulso'
     if (!aceiteTermo?.aceito) {
       return res.status(400).json({ erro: 'É necessário aceitar o termo para enviar o pedido' });
     }
@@ -62,6 +67,7 @@ router.post('/', autenticar, async (req, res) => {
     const dados = {
       cliente: req.usuario.id,
       tipo,
+      modo,
       aceiteTermo: { aceito: true, dataAceite: new Date() },
       status: 'pendente_aprovacao',
       discordUsuario: discordUsuario?.trim() || undefined,
@@ -70,7 +76,7 @@ router.post('/', autenticar, async (req, res) => {
         .map((i) => ({ tipo: i.tipo, descricao: i.descricao.trim() })),
     };
 
-    if (tipo === 'model') {
+    if (modo === 'model') {
       dados.versoes = (versoes || [])
         .map((v) => ({
           nome: v.nome?.trim() || 'Personagem',

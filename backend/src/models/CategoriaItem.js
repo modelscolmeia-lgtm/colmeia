@@ -3,8 +3,8 @@ import mongoose from 'mongoose';
 const categoriaSchema = new mongoose.Schema({
   nome: { type: String, required: true },       // "Cabelo", "Chifres"...
   slug: { type: String, required: true, unique: true },
-  // 'model' aparece na montagem do model; 'item_avulso' é pedido separado (Espada, Cajado, Escudo)
-  tipo: { type: String, enum: ['model', 'item_avulso'], default: 'model' },
+  // slug da categoria-mãe (Tipo) a que pertence, ex: 'model', 'item_avulso', ou uma nova
+  tipo: { type: String, default: 'model' },
   ordem: { type: Number, default: 0 },
   permiteMultiplaSelecao: { type: Boolean, default: false }, // ex: acessórios pode ter mais de um
   permiteQuantidade: { type: Boolean, default: false },      // ex: 6 chifres
