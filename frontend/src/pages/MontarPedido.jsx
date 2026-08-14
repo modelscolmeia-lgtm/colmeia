@@ -8,7 +8,6 @@ import {
   faixaPreco,
   formatBRL,
   imagemUrl,
-  ITENS_PERSONALIZADOS,
   TERMOS_URL,
 } from '../utils/pedido';
 
@@ -164,8 +163,8 @@ export default function MontarPedido() {
   const [versoes, setVersoes] = useState([{ nome: '', selecoes: {} }]);
   // item avulso: um único conjunto de seleções
   const [selecoesAvulso, setSelecoesAvulso] = useState({});
-  const [personalizados, setPersonalizados] = useState({});
   const [aceite, setAceite] = useState(false);
+  const [abriuTermos, setAbriuTermos] = useState(false);
   const [erro, setErro] = useState('');
   const [enviando, setEnviando] = useState(false);
   const [modalAberto, setModalAberto] = useState(false);
@@ -282,15 +281,8 @@ export default function MontarPedido() {
     return { min, max };
   }, [tipo, versoes, selecoesAvulso, varPorId]);
 
-  function setPersonalizado(tipoItem, descricao) {
-    setPersonalizados((p) => ({ ...p, [tipoItem]: descricao }));
-  }
-
   // Monta o payload do pedido a partir das seleções atuais.
   function montarPayload() {
-    const personalizadosArr = ITENS_PERSONALIZADOS.filter((i) => personalizados[i.tipo]?.trim()).map(
-      (i) => ({ tipo: i.tipo, descricao: personalizados[i.tipo].trim() })
-    );
     const toItens = (selecoes) =>
       Object.entries(selecoes).map(([variante, sel]) => ({
         variante,
@@ -300,7 +292,7 @@ export default function MontarPedido() {
         descricoes: (sel.descricoes || []).slice(0, sel.quantidade || 1).filter(Boolean),
       }));
 
-    const payload = { tipo, aceiteTermo: { aceito: true }, itensPersonalizados: personalizadosArr };
+    const payload = { tipo, aceiteTermo: { aceito: true }, itensPersonalizados: [] };
     if (tipo === 'model') {
       payload.versoes = versoes
         .map((v, i) => ({ nome: v.nome?.trim() || `Personagem ${i + 1}`, itens: toItens(v.selecoes) }))
@@ -308,22 +300,22 @@ export default function MontarPedido() {
     } else {
       payload.itensAvulsos = toItens(selecoesAvulso);
     }
-    return { payload, personalizadosArr };
+    return { payload };
   }
 
   // Valida se há itens e nomes; retorna mensagem de erro ou null.
   function validarItens() {
-    const { payload, personalizadosArr } = montarPayload();
+    const { payload } = montarPayload();
     if (tipo === 'model') {
-      if (!payload.versoes.length && !personalizadosArr.length) {
-        return 'Selecione pelo menos um item ou descreva um item personalizado.';
+      if (!payload.versoes.length) {
+        return 'Selecione pelo menos um item.';
       }
       const semNome = versoes.some(
         (v) => Object.keys(v.selecoes).length > 0 && !v.nome.trim()
       );
       if (semNome) return 'Dê um nome a cada personagem antes de enviar.';
     }
-    if (tipo === 'item_avulso' && !payload.itensAvulsos.length && !personalizadosArr.length) {
+    if (tipo === 'item_avulso' && !payload.itensAvulsos.length) {
       return 'Selecione pelo menos um item avulso.';
     }
     return null;
@@ -446,26 +438,6 @@ export default function MontarPedido() {
         </>
       )}
 
-      {/* Itens personalizados (texto livre) */}
-      <div className="card" style={{ marginTop: 16 }}>
-        <h3>Quer algo fora do catálogo?</h3>
-        <p className="muted" style={{ marginTop: 0 }}>
-          Descreva e o artista define o valor no orçamento.
-        </p>
-        <div className="stack">
-          {ITENS_PERSONALIZADOS.map((item) => (
-            <label key={item.tipo}>
-              {item.tipo} <span className="muted">— {item.dica}</span>
-              <input
-                placeholder={item.placeholder}
-                value={personalizados[item.tipo] || ''}
-                onChange={(e) => setPersonalizado(item.tipo, e.target.value)}
-              />
-            </label>
-          ))}
-        </div>
-      </div>
-
       {/* Estimativa */}
       <div className="card" style={{ marginTop: 16 }}>
         <div className="between">
@@ -477,7 +449,7 @@ export default function MontarPedido() {
           </span>
         </div>
         <p className="muted" style={{ fontSize: 15, margin: '6px 0 0' }}>
-          O valor final é definido pelo artista no orçamento e pode incluir itens personalizados.
+          O valor final é definido pelo artista no orçamento.
         </p>
 
         {erro && <p className="erro">{erro}</p>}
@@ -519,8 +491,14 @@ export default function MontarPedido() {
           Leia o documento de termos e condições antes de enviar o seu pedido:
         </p>
 
-        <a href={TERMOS_URL} target="_blank" rel="noopener noreferrer" className="botao-link">
-          📄 Ler os termos e condições
+        <a
+          href={TERMOS_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="botao-link"
+          onClick={() => setAbriuTermos(true)}
+        >
+          📄 Ler os termos e condições {abriuTermos ? '✓' : ''}
         </a>
 
         <div className="aviso" style={{ marginTop: 14 }}>
@@ -529,10 +507,20 @@ export default function MontarPedido() {
           por isso.
         </div>
 
-        <label className="pill-check" style={{ marginTop: 14 }}>
-          <input type="checkbox" checked={aceite} onChange={(e) => setAceite(e.target.checked)} />
+        <label className="pill-check" style={{ marginTop: 14, opacity: abriuTermos ? 1 : 0.5 }}>
+          <input
+            type="checkbox"
+            checked={aceite}
+            disabled={!abriuTermos}
+            onChange={(e) => setAceite(e.target.checked)}
+          />
           <span>Li os termos e condições e aceito.</span>
         </label>
+        {!abriuTermos && (
+          <p className="muted" style={{ fontSize: 14, marginTop: 4 }}>
+            Abra os termos acima para poder marcar o aceite.
+          </p>
+        )}
         {erro && <p className="erro">{erro}</p>}
       </Modal>
     </Layout>

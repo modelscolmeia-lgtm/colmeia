@@ -10,6 +10,8 @@ const categoriaSchema = new mongoose.Schema({
   permiteQuantidade: { type: Boolean, default: false },      // ex: 6 chifres
   // um campo de texto por unidade (ex: Expressões — o cliente descreve cada expressão)
   textoPorQuantidade: { type: Boolean, default: false },
+  // categoria visível no "Fazer pedido"? (false = escondida do cliente, mas fica no admin)
+  ativo: { type: Boolean, default: true },
 }, { timestamps: true });
 
 export default mongoose.model('CategoriaItem', categoriaSchema);

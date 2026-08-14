@@ -304,21 +304,26 @@ function NovaCategoria({ token, onCriado }) {
 }
 
 // Seção de categorias (Model ou Itens avulsos).
-function Secao({ titulo, categorias, token, dirty, onChangeVariante, onVarianteCriada }) {
+function Secao({ titulo, categorias, token, dirty, onChangeVariante, onVarianteCriada, onToggleCategoria }) {
   if (!categorias.length) return null;
   return (
     <>
       <h2 style={{ marginTop: 24 }}>{titulo}</h2>
       {categorias.map((cat) => (
-        <div className="card" key={cat._id}>
+        <div className="card" key={cat._id} style={{ opacity: cat.ativo === false ? 0.6 : 1 }}>
           <div className="between">
             <h3 style={{ margin: 0 }}>
               {cat.nome} <span className="badge info">{cat.variantes.length} variantes</span>
+              {cat.ativo === false && <span className="badge danger" style={{ marginLeft: 6 }}>oculta</span>}
             </h3>
-            <span className="muted" style={{ fontSize: 14 }}>
-              slug: {cat.slug} · ordem {cat.ordem} · {cat.permiteMultiplaSelecao ? 'múltipla' : 'única'}
-              {cat.permiteQuantidade ? ' · qtd' : ''}
-            </span>
+            <label className="pill-check" style={{ fontSize: 15 }}>
+              <input type="checkbox" checked={cat.ativo !== false} onChange={() => onToggleCategoria(cat)} />
+              <span>Visível no site</span>
+            </label>
+          </div>
+          <div className="muted" style={{ fontSize: 14, marginTop: 4 }}>
+            slug: {cat.slug} · ordem {cat.ordem} · {cat.permiteMultiplaSelecao ? 'múltipla' : 'única'}
+            {cat.permiteQuantidade ? ' · qtd' : ''}
           </div>
           <hr className="divider" />
           {cat.variantes.map((v) => (
@@ -375,6 +380,18 @@ export default function AdminCatalogo() {
   const onCategoriaCriada = useCallback((nova) => {
     setCats((prev) => [...prev, { ...nova, variantes: [] }]);
   }, []);
+
+  // Mostra/esconde a categoria inteira do "Fazer pedido" (salva na hora).
+  const alternarCategoria = useCallback(async (cat) => {
+    setErro('');
+    try {
+      const visivel = cat.ativo !== false;
+      const atualizada = await api.put(`/admin/categorias/${cat._id}`, { ativo: !visivel }, token);
+      setCats((prev) => prev.map((c) => (c._id === cat._id ? { ...c, ativo: atualizada.ativo } : c)));
+    } catch (e) {
+      setErro(e.message);
+    }
+  }, [token]);
 
   async function salvarTudo() {
     if (!dirty.size || salvando) return;
@@ -467,8 +484,8 @@ export default function AdminCatalogo() {
       {carregando && <p className="muted">Carregando...</p>}
       {erro && <p className="erro">{erro}</p>}
 
-      <Secao titulo="Categorias do Model" categorias={model} token={token} dirty={dirty} onChangeVariante={atualizarVariante} onVarianteCriada={onVarianteCriada} />
-      <Secao titulo="Itens avulsos" categorias={avulso} token={token} dirty={dirty} onChangeVariante={atualizarVariante} onVarianteCriada={onVarianteCriada} />
+      <Secao titulo="Categorias do Model" categorias={model} token={token} dirty={dirty} onChangeVariante={atualizarVariante} onVarianteCriada={onVarianteCriada} onToggleCategoria={alternarCategoria} />
+      <Secao titulo="Itens avulsos" categorias={avulso} token={token} dirty={dirty} onChangeVariante={atualizarVariante} onVarianteCriada={onVarianteCriada} onToggleCategoria={alternarCategoria} />
 
       {!carregando && !model.length && !avulso.length && (
         <div className="card center muted">Nada encontrado{q ? ` para "${busca}"` : ''}.</div>

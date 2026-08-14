@@ -9,7 +9,7 @@ const router = Router();
 // Query opcional: ?tipo=model | ?tipo=item_avulso
 router.get('/', async (req, res) => {
   try {
-    const filtroCategoria = {};
+    const filtroCategoria = { ativo: { $ne: false } }; // esconde categorias desativadas
     if (req.query.tipo) filtroCategoria.tipo = req.query.tipo;
 
     const categorias = await CategoriaItem.find(filtroCategoria).sort({ ordem: 1, nome: 1 }).lean();
