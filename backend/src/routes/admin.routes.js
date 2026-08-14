@@ -168,7 +168,7 @@ router.put('/pedidos/:id/orcar', async (req, res) => {
     const { versoes, itensAvulsos, itensPersonalizados, valorTotal, observacaoAdmin } = req.body;
     const pedido = await Pedido.findById(req.params.id);
     if (!pedido) return res.status(404).json({ erro: 'Pedido não encontrado' });
-    if (!['pendente_aprovacao', 'orcado'].includes(pedido.status)) {
+    if (!['pendente_aprovacao', 'orcado', 'recusado_cliente'].includes(pedido.status)) {
       return res.status(400).json({ erro: 'Este pedido não pode ser orçado no status atual' });
     }
 
@@ -202,6 +202,21 @@ router.put('/pedidos/:id/orcar', async (req, res) => {
     res.json(await popularPedido(Pedido.findById(pedido._id)));
   } catch (err) {
     res.status(500).json({ erro: 'Erro ao orçar pedido', detalhe: err.message });
+  }
+});
+
+// DELETE /api/admin/pedidos/:id — exclui um pedido morto (recusado ou cancelado).
+router.delete('/pedidos/:id', async (req, res) => {
+  try {
+    const pedido = await Pedido.findById(req.params.id).select('status');
+    if (!pedido) return res.status(404).json({ erro: 'Pedido não encontrado' });
+    if (!['recusado_cliente', 'cancelado'].includes(pedido.status)) {
+      return res.status(400).json({ erro: 'Só dá para excluir pedidos recusados ou cancelados' });
+    }
+    await Pedido.deleteOne({ _id: pedido._id });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ erro: 'Erro ao excluir pedido', detalhe: err.message });
   }
 });
 

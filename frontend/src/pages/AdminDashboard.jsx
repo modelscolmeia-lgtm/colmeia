@@ -310,6 +310,24 @@ export default function AdminDashboard() {
     }
   }
 
+  async function excluirPedido(id) {
+    if (!(await confirmar({
+      titulo: 'Excluir pedido',
+      mensagem: 'Excluir este pedido de vez? Não dá pra desfazer.',
+      okLabel: 'Excluir',
+      perigo: true,
+    }))) return;
+    setAcao(true);
+    try {
+      await api.delete(`/admin/pedidos/${id}`, token);
+      await carregar();
+    } catch (e) {
+      setErro(e.message);
+    } finally {
+      setAcao(false);
+    }
+  }
+
   return (
     <Layout>
       <div className="between">
@@ -397,7 +415,7 @@ export default function AdminDashboard() {
               <ResumoItens pedido={p} />
 
               {/* Ações por status */}
-              {['pendente_aprovacao', 'orcado'].includes(p.status) && (
+              {['pendente_aprovacao', 'orcado', 'recusado_cliente'].includes(p.status) && (
                 <div style={{ marginTop: 12 }}>
                   {editandoItens === p._id ? (
                     <AdminEditarItens
@@ -416,7 +434,7 @@ export default function AdminDashboard() {
                   ) : (
                     <div className="btn-row">
                       <button className="pequeno" onClick={() => { setEditando(p._id); setEditandoItens(null); }}>
-                        {p.status === 'orcado' ? 'Reorçar' : 'Orçar pedido'}
+                        {['orcado', 'recusado_cliente'].includes(p.status) ? 'Reorçar' : 'Orçar pedido'}
                       </button>
                       <button className="secundario pequeno" onClick={() => { setEditandoItens(p._id); setEditando(null); }}>
                         Editar itens
@@ -442,6 +460,19 @@ export default function AdminDashboard() {
                 <div style={{ marginTop: 12 }}>
                   <button className="sucesso pequeno" onClick={() => concluir(p._id)} disabled={acao}>
                     Marcar como concluído
+                  </button>
+                </div>
+              )}
+
+              {['recusado_cliente', 'cancelado'].includes(p.status) && (
+                <div className="btn-row" style={{ marginTop: 12 }}>
+                  {p.status === 'recusado_cliente' && editando !== p._id && (
+                    <span className="muted" style={{ fontSize: 13 }}>
+                      O cliente recusou. Você pode reorçar acima ou excluir o pedido.
+                    </span>
+                  )}
+                  <button className="perigo pequeno" onClick={() => excluirPedido(p._id)} disabled={acao}>
+                    Excluir pedido
                   </button>
                 </div>
               )}
