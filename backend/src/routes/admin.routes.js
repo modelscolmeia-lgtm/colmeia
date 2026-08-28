@@ -303,8 +303,9 @@ router.put('/pedidos/:id/concluir', async (req, res) => {
   try {
     const pedido = await Pedido.findById(req.params.id);
     if (!pedido) return res.status(404).json({ erro: 'Pedido não encontrado' });
-    if (pedido.status !== 'em_producao') {
-      return res.status(400).json({ erro: 'Só é possível concluir um pedido em produção' });
+    // Pode concluir qualquer pedido da fila (em produção OU aguardando), fora de ordem.
+    if (!['em_producao', 'fila_producao'].includes(pedido.status)) {
+      return res.status(400).json({ erro: 'Só é possível concluir um pedido que está na fila de produção' });
     }
 
     pedido.status = 'concluido';

@@ -279,7 +279,8 @@ export default function AdminDashboard() {
   async function concluir(id) {
     if (!(await confirmar({
       titulo: 'Concluir pedido',
-      mensagem: 'Marcar este pedido como concluído? O próximo da fila entra em produção.',
+      mensagem:
+        'Marcar este pedido como concluído? Ele sai da fila, as posições são recalculadas e abre uma vaga.',
       okLabel: 'Concluir',
     }))) return;
     setAcao(true);
@@ -456,8 +457,14 @@ export default function AdminDashboard() {
                 </div>
               )}
 
-              {p.status === 'em_producao' && (
+              {['em_producao', 'fila_producao'].includes(p.status) && (
                 <div style={{ marginTop: 12 }}>
+                  {p.status === 'fila_producao' && (
+                    <div className="muted" style={{ fontSize: 13, marginBottom: 6 }}>
+                      Terminou este antes dos outros? Pode concluir fora da ordem — ele sai da fila e
+                      abre uma vaga.
+                    </div>
+                  )}
                   <button className="sucesso pequeno" onClick={() => concluir(p._id)} disabled={acao}>
                     Marcar como concluído
                   </button>
