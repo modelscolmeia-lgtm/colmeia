@@ -298,6 +298,27 @@ router.put('/pedidos/:id/confirmar-pagamento', async (req, res) => {
   }
 });
 
+// PUT /api/admin/pedidos/:id/cancelar-pagamento — artista cancela um pedido que está
+// aguardando pagamento (cliente desistiu / não pagou) → status 'cancelado'.
+router.put('/pedidos/:id/cancelar-pagamento', async (req, res) => {
+  try {
+    const pedido = await Pedido.findById(req.params.id);
+    if (!pedido) return res.status(404).json({ erro: 'Pedido não encontrado' });
+    if (pedido.status !== 'aguardando_pagamento') {
+      return res.status(400).json({ erro: 'Este pedido não está aguardando pagamento' });
+    }
+
+    pedido.status = 'cancelado';
+    await pedido.save();
+
+    postarNoTicket(pedido, '❌ **Pagamento cancelado pelo artista.** Este pedido foi encerrado.');
+
+    res.json(await popularPedido(Pedido.findById(pedido._id)));
+  } catch (err) {
+    res.status(500).json({ erro: 'Erro ao cancelar o pagamento', detalhe: err.message });
+  }
+});
+
 // PUT /api/admin/pedidos/:id/concluir — conclui o pedido e promove o próximo da fila.
 router.put('/pedidos/:id/concluir', async (req, res) => {
   try {

@@ -10,13 +10,14 @@ import {
   notificarArtistaCancelamento,
   notificarArtistaPedidoAceito,
 } from '../services/email.js';
-import { abrirTicket } from '../services/discord.js';
+import { abrirTicket, postarNoTicket } from '../services/discord.js';
 import { contarFila, getLimiteFila } from '../services/fila.js';
 import Tipo from '../models/Tipo.js';
 import { garantirTiposPadrao } from '../services/tipos.js';
 
-// Status em que o cliente ainda pode cancelar o pedido (antes de aceitar/produzir).
-const CANCELAVEIS = ['pendente_aprovacao', 'orcado'];
+// Status em que o cliente ainda pode cancelar o pedido (antes de entrar na fila).
+// Inclui 'aguardando_pagamento': desistiu antes de pagar a entrada.
+const CANCELAVEIS = ['pendente_aprovacao', 'orcado', 'aguardando_pagamento'];
 
 const router = Router();
 
@@ -207,6 +208,8 @@ router.put('/:id/cancelar', autenticar, async (req, res) => {
 
     const cliente = await User.findById(pedido.cliente).select('nome');
     notificarArtistaCancelamento(pedido, cliente?.nome); // avisa o artista
+    // se já havia ticket aberto (aguardando pagamento), avisa por lá também
+    postarNoTicket(pedido, '❌ **Pedido cancelado pelo cliente.** O pagamento não será mais necessário.');
 
     res.json(await popularPedido(Pedido.findById(pedido._id)));
   } catch (err) {

@@ -311,6 +311,26 @@ export default function AdminDashboard() {
     }
   }
 
+  async function cancelarPagamento(id) {
+    if (!(await confirmar({
+      titulo: 'Cancelar pagamento',
+      mensagem:
+        'Cancelar este pedido? Ele sai da lista de pagamentos e o cliente é avisado no ticket. Não dá pra desfazer.',
+      okLabel: 'Cancelar pedido',
+      cancelLabel: 'Voltar',
+      perigo: true,
+    }))) return;
+    setAcao(true);
+    try {
+      await api.put(`/admin/pedidos/${id}/cancelar-pagamento`, null, token);
+      await carregar();
+    } catch (e) {
+      setErro(e.message);
+    } finally {
+      setAcao(false);
+    }
+  }
+
   async function excluirPedido(id) {
     if (!(await confirmar({
       titulo: 'Excluir pedido',
@@ -451,9 +471,14 @@ export default function AdminDashboard() {
                     💸 Confira na sua conta se a <strong>entrada (50%)</strong> caiu. O cliente envia o
                     comprovante no ticket do Discord. Confirmando, o pedido entra na fila de produção.
                   </div>
-                  <button className="sucesso pequeno" onClick={() => confirmarPagamento(p._id)} disabled={acao}>
-                    Confirmar pagamento
-                  </button>
+                  <div className="btn-row">
+                    <button className="sucesso pequeno" onClick={() => confirmarPagamento(p._id)} disabled={acao}>
+                      Confirmar pagamento
+                    </button>
+                    <button className="perigo pequeno" onClick={() => cancelarPagamento(p._id)} disabled={acao}>
+                      Cancelar pedido
+                    </button>
+                  </div>
                 </div>
               )}
 

@@ -296,6 +296,11 @@ export default function PedidoDetalhe() {
               seu pedido vai automaticamente para a fila de produção.
             </div>
             <BlocoDiscord pedido={pedido} />
+            <div style={{ marginTop: 12 }}>
+              <button className="perigo pequeno" onClick={cancelar} disabled={acao}>
+                Desistir e cancelar pedido
+              </button>
+            </div>
           </>
         )}
 
