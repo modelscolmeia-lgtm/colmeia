@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { api } from '../services/api';
+import { useDialog } from '../context/DialogProvider';
 import ItemImagem from './ItemImagem';
 
 // Editor de itens de um pedido (usado pelo admin, antes do pagamento).
@@ -22,6 +23,7 @@ export default function AdminEditarItens({ pedido, token, catalogo, onSalvo, onC
   );
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState('');
+  const { confirmar } = useDialog();
 
   const flat = useMemo(
     () => (catalogo || []).flatMap((c) => c.variantes.map((v) => ({ id: v._id, nome: v.nome, img: v.imagemExemplo || '', cat: c.nome }))),
@@ -32,7 +34,27 @@ export default function AdminEditarItens({ pedido, token, catalogo, onSalvo, onC
   // ---- model (personagens) ----
   const setChar = (ci, fn) => setChars((cs) => cs.map((c, i) => (i === ci ? fn(c) : c)));
   const renomear = (ci, nome) => setChar(ci, (c) => ({ ...c, nome }));
-  const removerChar = (ci) => setChars((cs) => cs.filter((_, i) => i !== ci));
+  async function cancelarEdicao() {
+    const ok = await confirmar({
+      titulo: 'Cancelar edição',
+      mensagem: 'Sair sem salvar? As alterações feitas nos itens deste pedido serão perdidas.',
+      okLabel: 'Sair sem salvar',
+      cancelLabel: 'Continuar editando',
+      perigo: true,
+    });
+    if (ok) onCancelar();
+  }
+
+  const removerChar = async (ci) => {
+    const ok = await confirmar({
+      titulo: 'Remover personagem',
+      mensagem: `Remover "${chars[ci]?.nome || 'este personagem'}" e os itens dele deste pedido?`,
+      okLabel: 'Remover',
+      cancelLabel: 'Voltar',
+      perigo: true,
+    });
+    if (ok) setChars((cs) => cs.filter((_, i) => i !== ci));
+  };
   const addChar = () => setChars((cs) => [...cs, { nome: '', itens: [] }]);
   const setItemChar = (ci, ii, fn) => setChar(ci, (c) => ({ ...c, itens: c.itens.map((it, i) => (i === ii ? fn(it) : it)) }));
   const removerItemChar = (ci, ii) => setChar(ci, (c) => ({ ...c, itens: c.itens.filter((_, i) => i !== ii) }));
@@ -175,7 +197,7 @@ export default function AdminEditarItens({ pedido, token, catalogo, onSalvo, onC
       {erro && <p className="erro">{erro}</p>}
       <div className="btn-row" style={{ marginTop: 12 }}>
         <button onClick={salvar} disabled={salvando}>{salvando ? 'Salvando...' : 'Salvar itens'}</button>
-        <button className="secundario" onClick={onCancelar} disabled={salvando}>Cancelar</button>
+        <button className="secundario" onClick={cancelarEdicao} disabled={salvando}>Cancelar</button>
       </div>
     </div>
   );

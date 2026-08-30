@@ -338,6 +338,7 @@ function Secao({ titulo, categorias, token, dirty, onChangeVariante, onVarianteC
 
 export default function AdminCatalogo() {
   const { token } = useAuth();
+  const { confirmar } = useDialog();
   const [cats, setCats] = useState([]);
   const [dirty, setDirty] = useState(() => new Set());
   const [carregando, setCarregando] = useState(true);
@@ -392,6 +393,17 @@ export default function AdminCatalogo() {
       setErro(e.message);
     }
   }, [token]);
+
+  async function descartar() {
+    if (!(await confirmar({
+      titulo: 'Descartar alterações',
+      mensagem: `Descartar ${dirty.size} alteração(ões) não salva(s)? Elas serão perdidas.`,
+      okLabel: 'Descartar',
+      cancelLabel: 'Voltar',
+      perigo: true,
+    }))) return;
+    await carregar();
+  }
 
   async function salvarTudo() {
     if (!dirty.size || salvando) return;
@@ -465,7 +477,7 @@ export default function AdminCatalogo() {
         >
           <strong>{dirty.size} alteração(ões) não salva(s)</strong>
           <div className="btn-row">
-            <button className="secundario pequeno" onClick={carregar} disabled={salvando}>Descartar</button>
+            <button className="secundario pequeno" onClick={descartar} disabled={salvando}>Descartar</button>
             <button onClick={salvarTudo} disabled={salvando}>{salvando ? 'Salvando...' : 'Salvar tudo'}</button>
           </div>
         </div>

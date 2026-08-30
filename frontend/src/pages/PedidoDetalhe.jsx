@@ -69,6 +69,7 @@ function CupomBox({ pedido, token, onMudou }) {
   const [codigo, setCodigo] = useState('');
   const [erro, setErro] = useState('');
   const [carregando, setCarregando] = useState(false);
+  const { confirmar } = useDialog();
 
   async function aplicar() {
     setCarregando(true);
@@ -84,6 +85,13 @@ function CupomBox({ pedido, token, onMudou }) {
     }
   }
   async function remover() {
+    if (!(await confirmar({
+      titulo: 'Remover cupom',
+      mensagem: `Remover o cupom ${pedido.cupom}? O desconto sai do total.`,
+      okLabel: 'Remover',
+      cancelLabel: 'Voltar',
+      perigo: true,
+    }))) return;
     onMudou(await api.delete(`/pedidos/${pedido._id}/cupom`, token));
   }
 
@@ -144,6 +152,30 @@ export default function PedidoDetalhe() {
       setErro(e.message);
     } finally {
       setAcao(false);
+    }
+  }
+
+  async function aceitarOrcamento() {
+    const total = (pedido.valorTotal || 0) - (pedido.descontoValor || 0);
+    if (await confirmar({
+      titulo: 'Aceitar orçamento',
+      mensagem: `Aceitar o orçamento de ${formatBRL(total)}? Vamos abrir o seu ticket no Discord com os detalhes e a chave Pix para o pagamento da entrada.`,
+      okLabel: 'Aceitar',
+      cancelLabel: 'Voltar',
+    })) {
+      responder('aceitar', { discordUsuario });
+    }
+  }
+
+  async function recusarOrcamento() {
+    if (await confirmar({
+      titulo: 'Recusar orçamento',
+      mensagem: 'Recusar este orçamento? Se mudar de ideia, o artista ainda pode enviar um novo.',
+      okLabel: 'Recusar',
+      cancelLabel: 'Voltar',
+      perigo: true,
+    })) {
+      responder('recusar');
     }
   }
 
@@ -273,14 +305,10 @@ export default function PedidoDetalhe() {
               />
             </label>
             <div className="btn-row" style={{ marginTop: 10 }}>
-              <button
-                className="sucesso"
-                onClick={() => responder('aceitar', { discordUsuario })}
-                disabled={acao}
-              >
+              <button className="sucesso" onClick={aceitarOrcamento} disabled={acao}>
                 Aceitar orçamento
               </button>
-              <button className="perigo" onClick={() => responder('recusar')} disabled={acao}>
+              <button className="perigo" onClick={recusarOrcamento} disabled={acao}>
                 Recusar
               </button>
             </div>

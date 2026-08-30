@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import Modal from '../components/Modal';
 import { useAuth } from '../context/AuthContext';
+import { useDialog } from '../context/DialogProvider';
 import { api } from '../services/api';
 import {
   faixaPreco,
@@ -152,6 +153,7 @@ function CategoriaBloco({ categoria, selecoes, onToggle, onQtd, onObs, onCor, on
 
 export default function MontarPedido() {
   const { token } = useAuth();
+  const { confirmar } = useDialog();
   const navigate = useNavigate();
 
   const [tipo, setTipo] = useState('model');
@@ -249,7 +251,20 @@ export default function MontarPedido() {
   function addVersao() {
     setVersoes((vs) => [...vs, { nome: '', selecoes: {} }]);
   }
-  function removerVersao(i) {
+  async function removerVersao(i) {
+    const v = versoes[i];
+    // só pergunta se o personagem já tem algo montado (evita fricção à toa)
+    const temConteudo = v && (v.nome?.trim() || Object.keys(v.selecoes || {}).length > 0);
+    if (temConteudo) {
+      const ok = await confirmar({
+        titulo: 'Remover personagem',
+        mensagem: `Remover "${v.nome?.trim() || `Personagem ${i + 1}`}" e tudo o que você escolheu para ele?`,
+        okLabel: 'Remover',
+        cancelLabel: 'Voltar',
+        perigo: true,
+      });
+      if (!ok) return;
+    }
     setVersoes((vs) => vs.filter((_, idx) => idx !== i));
   }
   function renomearVersao(i, nome) {
