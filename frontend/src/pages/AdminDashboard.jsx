@@ -6,7 +6,7 @@ import ItemImagem from '../components/ItemImagem';
 import { useAuth } from '../context/AuthContext';
 import { useDialog } from '../context/DialogProvider';
 import { api } from '../services/api';
-import { formatBRL, faixaPreco, statusLabel, STATUS_INFO, normaliza } from '../utils/pedido';
+import { formatBRL, faixaPreco, statusLabel, STATUS_INFO, normaliza, TAXA_ENTREGA_PRIORITARIA } from '../utils/pedido';
 
 const ABAS = [
   { status: 'pendente_aprovacao', label: 'A orçar' },
@@ -55,6 +55,7 @@ function EditorOrcamento({ pedido, token, onSalvo }) {
     (pedido.itensPersonalizados || []).forEach((_, pi) => {
       s += Number(valores[`p${pi}`]) || 0;
     });
+    if (pedido.entregaPrioritaria) s += TAXA_ENTREGA_PRIORITARIA;
     return s;
   }, [valores, pedido]);
 
@@ -151,8 +152,14 @@ function EditorOrcamento({ pedido, token, onSalvo }) {
       )}
 
       <hr className="divider" />
+      {pedido.entregaPrioritaria && (
+        <div className="between">
+          <span className="muted">⚡ Entrega prioritária (3 a 5 dias úteis)</span>
+          <span className="preco">+ {formatBRL(TAXA_ENTREGA_PRIORITARIA)}</span>
+        </div>
+      )}
       <div className="between">
-        <span className="muted">Subtotal dos itens</span>
+        <span className="muted">Subtotal dos itens{pedido.entregaPrioritaria ? ' + prioridade' : ''}</span>
         <span className="preco">{formatBRL(subtotal)}</span>
       </div>
       <label style={{ marginTop: 10 }}>
@@ -428,6 +435,11 @@ export default function AdminDashboard() {
                 </div>
                 <div className="center">
                   <span className={`badge ${info.cor || ''}`}>{statusLabel(p.status)}</span>
+                  {p.entregaPrioritaria && (
+                    <div style={{ marginTop: 6 }}>
+                      <span className="badge gold" title="3 a 5 dias úteis">⚡ Prioritária</span>
+                    </div>
+                  )}
                   {p.valorTotal != null && <div className="preco" style={{ marginTop: 6 }}>{formatBRL(p.valorTotal)}</div>}
                 </div>
               </div>

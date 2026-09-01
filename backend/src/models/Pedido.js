@@ -56,6 +56,9 @@ const pedidoSchema = new mongoose.Schema({
 
   status: { type: String, enum: STATUS, default: 'pendente_aprovacao' },
 
+  // entrega prioritária: 3 a 5 dias úteis, cobra a taxa fixa TAXA_ENTREGA_PRIORITARIA
+  entregaPrioritaria: { type: Boolean, default: false },
+
   valorTotal: { type: Number },
   cupom: { type: String },              // código do cupom aplicado
   descontoValor: { type: Number, default: 0 }, // desconto em R$
@@ -75,4 +78,7 @@ const pedidoSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 export const STATUS_PEDIDO = STATUS;
+
+// Quanto a entrega prioritária (3 a 5 dias úteis) soma ao valor do pedido.
+export const TAXA_ENTREGA_PRIORITARIA = 50;
 export default mongoose.model('Pedido', pedidoSchema);

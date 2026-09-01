@@ -5,6 +5,9 @@ export function formatBRL(valor) {
   return 'R$ ' + Number(valor).toFixed(2).replace('.', ',');
 }
 
+// Entrega prioritária: taxa fixa somada ao pedido (3 a 5 dias úteis).
+export const TAXA_ENTREGA_PRIORITARIA = 50;
+
 // Normaliza texto para busca: minúsculo e sem acento.
 export const normaliza = (s) =>
   (s ?? '').toString().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');

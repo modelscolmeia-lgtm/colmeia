@@ -58,7 +58,9 @@ export function DialogProvider({ children }) {
           )
         }
       >
-        <p style={{ margin: 0, fontSize: 18, lineHeight: 1.4 }}>{dialog?.mensagem}</p>
+        <p style={{ margin: 0, fontSize: 18, lineHeight: 1.5, whiteSpace: 'pre-line' }}>
+          {dialog?.mensagem}
+        </p>
       </Modal>
     </DialogCtx.Provider>
   );

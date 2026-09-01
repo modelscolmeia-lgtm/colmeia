@@ -5,7 +5,14 @@ import ItemImagem from '../components/ItemImagem';
 import { useAuth } from '../context/AuthContext';
 import { useDialog } from '../context/DialogProvider';
 import { api } from '../services/api';
-import { formatBRL, statusLabel, STATUS_INFO, janelaPrazo, DISCORD_CONVITE } from '../utils/pedido';
+import {
+  formatBRL,
+  statusLabel,
+  STATUS_INFO,
+  janelaPrazo,
+  DISCORD_CONVITE,
+  TAXA_ENTREGA_PRIORITARIA,
+} from '../utils/pedido';
 
 // Lista de itens de uma seleção (versão ou itens avulsos)
 function ListaItens({ itens }) {
@@ -252,6 +259,13 @@ export default function PedidoDetalhe() {
 
       {/* Total + ações por status */}
       <div className="card">
+        {pedido.entregaPrioritaria && (
+          <div className="aviso" style={{ marginBottom: 12 }}>
+            ⚡ <strong>Entrega prioritária</strong> — seu model fica pronto em{' '}
+            <strong>3 a 5 dias úteis</strong>. A taxa de {formatBRL(TAXA_ENTREGA_PRIORITARIA)} já está
+            somada no valor.
+          </div>
+        )}
         {pedido.valorTotal != null && (
           <>
             <div className="between">

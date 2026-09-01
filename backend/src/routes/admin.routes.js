@@ -3,7 +3,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import multer from 'multer';
-import Pedido from '../models/Pedido.js';
+import Pedido, { TAXA_ENTREGA_PRIORITARIA } from '../models/Pedido.js';
 import CategoriaItem from '../models/CategoriaItem.js';
 import Variante from '../models/Variante.js';
 import Cupom from '../models/Cupom.js';
@@ -142,6 +142,7 @@ function calcularTotal(pedido) {
   for (const ip of pedido.itensPersonalizados || []) {
     total += ip.valor || 0;
   }
+  if (pedido.entregaPrioritaria) total += TAXA_ENTREGA_PRIORITARIA;
   return total;
 }
 

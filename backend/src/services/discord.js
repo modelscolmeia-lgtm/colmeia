@@ -101,11 +101,14 @@ export function mensagemOrcamento(pedido, clienteRef) {
     ? `\n~~${fmtBRL(pedido.valorTotal)}~~ · cupom ${pedido.cupom}: −${fmtBRL(pedido.descontoValor)}`
     : '';
   const obs = pedido.observacaoAdmin ? `\n\nObservações: ${pedido.observacaoAdmin}` : '';
+  const prioritaria = pedido.entregaPrioritaria
+    ? '\n⚡ **Entrega prioritária** — 3 a 5 dias úteis (já incluída no valor)'
+    : '';
   const msg =
     `## 🐝 Orçamento — Pedido #${pedido.numero || '?'}\n` +
     `**Cliente:** ${clienteRef}\n` +
     `**Modelo:** ${modelo}\n${DIVISOR}\n\n` +
-    `${resumoDoPedido(pedido)}${obs}\n${DIVISOR}\n${desconto}\n` +
+    `${resumoDoPedido(pedido)}${obs}${prioritaria}\n${DIVISOR}\n${desconto}\n` +
     `**Valor Total: ${fmtBRL(total)}**`;
   return msg.slice(0, 1990);
 }

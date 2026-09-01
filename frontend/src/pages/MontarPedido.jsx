@@ -9,6 +9,7 @@ import {
   faixaPreco,
   formatBRL,
   imagemUrl,
+  TAXA_ENTREGA_PRIORITARIA,
   TERMOS_URL,
 } from '../utils/pedido';
 
@@ -167,6 +168,7 @@ export default function MontarPedido() {
   const [selecoesAvulso, setSelecoesAvulso] = useState({});
   const [aceite, setAceite] = useState(false);
   const [abriuTermos, setAbriuTermos] = useState(false);
+  const [prioritaria, setPrioritaria] = useState(false);
   const [erro, setErro] = useState('');
   const [enviando, setEnviando] = useState(false);
   const [modalAberto, setModalAberto] = useState(false);
@@ -293,8 +295,27 @@ export default function MontarPedido() {
     };
     if (tipo === 'model') versoes.forEach((v) => somar(v.selecoes));
     else somar(selecoesAvulso);
+    if (prioritaria && (min || max)) {
+      min += TAXA_ENTREGA_PRIORITARIA;
+      max += TAXA_ENTREGA_PRIORITARIA;
+    }
     return { min, max };
-  }, [tipo, versoes, selecoesAvulso, varPorId]);
+  }, [tipo, versoes, selecoesAvulso, varPorId, prioritaria]);
+
+  // Marcar entrega prioritária: explica as condições e pede confirmação.
+  async function alternarPrioritaria(marcou) {
+    if (!marcou) return setPrioritaria(false);
+    const ok = await confirmar({
+      titulo: '⚡ Entrega prioritária',
+      mensagem:
+        `A entrega prioritária custa ${formatBRL(TAXA_ENTREGA_PRIORITARIA)} a mais que o valor normal do seu model.\n\n` +
+        'Em troca, o seu pedido fura a fila e fica pronto em 3 a 5 dias úteis.\n\n' +
+        'Quer mesmo a entrega prioritária?',
+      okLabel: 'Sim, quero',
+      cancelLabel: 'Não, obrigado',
+    });
+    setPrioritaria(ok);
+  }
 
   // Monta o payload do pedido a partir das seleções atuais.
   function montarPayload() {
@@ -307,7 +328,12 @@ export default function MontarPedido() {
         descricoes: (sel.descricoes || []).slice(0, sel.quantidade || 1).filter(Boolean),
       }));
 
-    const payload = { tipo, aceiteTermo: { aceito: true }, itensPersonalizados: [] };
+    const payload = {
+      tipo,
+      aceiteTermo: { aceito: true },
+      itensPersonalizados: [],
+      entregaPrioritaria: prioritaria,
+    };
     if (tipo === 'model') {
       payload.versoes = versoes
         .map((v, i) => ({ nome: v.nome?.trim() || `Personagem ${i + 1}`, itens: toItens(v.selecoes) }))
@@ -452,6 +478,24 @@ export default function MontarPedido() {
           </div>
         </>
       )}
+
+      {/* Entrega prioritária */}
+      <div className="card" style={{ marginTop: 16 }}>
+        <label className="pill-check">
+          <input
+            type="checkbox"
+            checked={prioritaria}
+            onChange={(e) => alternarPrioritaria(e.target.checked)}
+          />
+          <span>
+            ⚡ <strong>Entrega prioritária</strong> — fica pronto em <strong>3 a 5 dias úteis</strong>{' '}
+            por <strong>{formatBRL(TAXA_ENTREGA_PRIORITARIA)}</strong> a mais
+          </span>
+        </label>
+        <p className="muted" style={{ fontSize: 15, margin: '6px 0 0' }}>
+          Sem a prioridade, o prazo normal é de 20 a 45 dias, conforme a fila.
+        </p>
+      </div>
 
       {/* Estimativa */}
       <div className="card" style={{ marginTop: 16 }}>

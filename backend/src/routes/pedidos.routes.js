@@ -45,7 +45,7 @@ function sanitizarItem(item) {
 // POST /api/pedidos — cliente cria um novo pedido
 router.post('/', autenticar, async (req, res) => {
   try {
-    const { tipo, versoes, itensAvulsos, itensPersonalizados, aceiteTermo, discordUsuario } = req.body;
+    const { tipo, versoes, itensAvulsos, itensPersonalizados, aceiteTermo, discordUsuario, entregaPrioritaria } = req.body;
 
     await garantirTiposPadrao();
     const tipoDoc = await Tipo.findById(tipo).lean();
@@ -71,6 +71,7 @@ router.post('/', autenticar, async (req, res) => {
       modo,
       aceiteTermo: { aceito: true, dataAceite: new Date() },
       status: 'pendente_aprovacao',
+      entregaPrioritaria: !!entregaPrioritaria,
       discordUsuario: discordUsuario?.trim() || undefined,
       itensPersonalizados: (itensPersonalizados || [])
         .filter((i) => i.descricao?.trim())
