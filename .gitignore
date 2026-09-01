@@ -2,9 +2,10 @@
 node_modules/
 
 # variáveis de ambiente (NUNCA commitar segredos)
+# pega .env, .env.teste, .env.local, etc — só o .env.example vai pro repositório
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
 
 # builds
 dist/
