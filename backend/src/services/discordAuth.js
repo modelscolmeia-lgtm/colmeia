@@ -50,7 +50,13 @@ export async function trocarCodigo(code) {
     body,
   });
   const tok = await tokenRes.json().catch(() => ({}));
-  if (!tok.access_token) throw new Error('Falha ao autenticar no Discord');
+  if (!tok.access_token) {
+    // Mostra o motivo real do Discord (ex: invalid_client = secret errado,
+    // invalid_grant = redirect_uri não bate com o registrado no portal).
+    console.error('[discord-oauth] falha na troca do code:', tokenRes.status, JSON.stringify(tok), 'redirect_uri usado:', REDIRECT);
+    const motivo = tok.error_description || tok.error || `HTTP ${tokenRes.status}`;
+    throw new Error(`Discord recusou o login (${motivo})`);
+  }
 
   const perfil = await fetch('https://discord.com/api/users/@me', {
     headers: { Authorization: `Bearer ${tok.access_token}` },
