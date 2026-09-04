@@ -49,11 +49,26 @@ export async function trocarCodigo(code) {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body,
   });
-  const tok = await tokenRes.json().catch(() => ({}));
+  // Lê como texto primeiro: em bloqueio de rate limit o Discord/Cloudflare
+  // responde HTML, e um .json() direto engoliria a pista do que houve.
+  const bruto = await tokenRes.text();
+  let tok = {};
+  try { tok = JSON.parse(bruto); } catch { /* resposta não-JSON (ex: HTML do Cloudflare) */ }
+
   if (!tok.access_token) {
-    // Mostra o motivo real do Discord (ex: invalid_client = secret errado,
-    // invalid_grant = redirect_uri não bate com o registrado no portal).
-    console.error('[discord-oauth] falha na troca do code:', tokenRes.status, JSON.stringify(tok), 'redirect_uri usado:', REDIRECT);
+    console.error(
+      '[discord-oauth] falha na troca do code:', tokenRes.status,
+      '| redirect_uri:', REDIRECT,
+      '| retry-after:', tokenRes.headers.get('retry-after') || '-',
+      '| corpo:', bruto.slice(0, 300)
+    );
+    if (tokenRes.status === 429) {
+      const espera = Number(tokenRes.headers.get('retry-after') || tok.retry_after || 0);
+      const min = espera ? Math.ceil(espera / 60) : null;
+      throw new Error(
+        `O Discord está limitando o nosso servidor no momento. Tente de novo${min ? ` em ~${min} min` : ' em alguns minutos'}.`
+      );
+    }
     const motivo = tok.error_description || tok.error || `HTTP ${tokenRes.status}`;
     throw new Error(`Discord recusou o login (${motivo})`);
   }
