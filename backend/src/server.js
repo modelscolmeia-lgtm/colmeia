@@ -15,6 +15,7 @@ import pedidosRoutes from './routes/pedidos.routes.js';
 import adminRoutes from './routes/admin.routes.js';
 import filaRoutes from './routes/fila.routes.js';
 import { iniciarBot } from './services/discord.js';
+import { agendarExpiracao } from './services/expiracao.js';
 
 const app = express();
 
@@ -42,6 +43,7 @@ const PORT = process.env.PORT || 4000;
 
 connectDB().then(() => {
   iniciarBot(); // conecta o bot do Discord (se configurado)
+  agendarExpiracao(); // expira orçamentos sem resposta (de hora em hora)
   app.listen(PORT, () => {
     console.log(`🐝 Colmeia API rodando na porta ${PORT}`);
   });
