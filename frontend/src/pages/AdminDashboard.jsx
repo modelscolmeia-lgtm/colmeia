@@ -15,7 +15,7 @@ const ABAS = [
   { status: 'fila_producao', label: 'Na fila' },
   { status: 'em_producao', label: 'Em produção' },
   { status: 'concluido', label: 'Concluídos' },
-  { status: 'recusado_cliente,cancelado', label: 'Recusados' },
+  { status: 'recusado_cliente,cancelado,expirado', label: 'Recusados' },
 ];
 
 // Editor de orçamento: já vem com os preços da tabela preenchidos; o admin só ajusta.
@@ -508,7 +508,7 @@ export default function AdminDashboard() {
                 </div>
               )}
 
-              {['recusado_cliente', 'cancelado'].includes(p.status) && (
+              {['recusado_cliente', 'cancelado', 'expirado'].includes(p.status) && (
                 <div className="btn-row" style={{ marginTop: 12 }}>
                   {p.status === 'recusado_cliente' && editando !== p._id && (
                     <span className="muted" style={{ fontSize: 13 }}>

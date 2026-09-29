@@ -10,7 +10,7 @@ import {
   notificarArtistaCancelamento,
   notificarArtistaPedidoAceito,
 } from '../services/email.js';
-import { abrirTicket, postarNoTicket } from '../services/discord.js';
+import { abrirTicket, postarNoTicket, avisarArtistas } from '../services/discord.js';
 import { contarFila, getLimiteFila } from '../services/fila.js';
 import Tipo from '../models/Tipo.js';
 import { garantirTiposPadrao } from '../services/tipos.js';
@@ -105,6 +105,14 @@ router.post('/', autenticar, async (req, res) => {
     // notificações (fire-and-forget)
     notificarClientePedidoCriado(completo);
     notificarArtistaNovoPedido(completo, req.usuario.nome);
+    avisarArtistas(
+      `📝 **Novo pedido para orçar!**
+` +
+        `Pedido **#${completo.numero}** de **${req.usuario.nome}**` +
+        `${completo.entregaPrioritaria ? ' ⚡ (entrega prioritária)' : ''}
+` +
+        `Abra o painel: ${process.env.APP_URL || 'http://localhost:5173'}/admin`
+    );
 
     res.status(201).json(completo);
   } catch (err) {

@@ -3,19 +3,24 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import multer from 'multer';
-import Pedido, { TAXA_ENTREGA_PRIORITARIA } from '../models/Pedido.js';
+import Pedido, { TAXA_ENTREGA_PRIORITARIA, VALIDADE_ORCAMENTO_DIAS } from '../models/Pedido.js';
 import CategoriaItem from '../models/CategoriaItem.js';
 import Variante from '../models/Variante.js';
 import Cupom from '../models/Cupom.js';
+import User from '../models/User.js';
 import Tipo from '../models/Tipo.js';
 import { listarTipos, slugify } from '../services/tipos.js';
+import { listarVencidos } from '../services/expiracao.js';
 import { autenticar, somenteAdmin } from '../middleware/auth.js';
 import { promoverProximo, entrarNaFila, getLimiteFila, setLimiteFila } from '../services/fila.js';
 import { salvarImagem } from '../services/upload.js';
 import { notificarClienteOrcamento, notificarClienteConcluido } from '../services/email.js';
-import { postarNoTicket } from '../services/discord.js';
+import { postarNoTicket, enviarDM } from '../services/discord.js';
 
 const router = Router();
+
+const APP_URL = process.env.APP_URL || 'http://localhost:5173';
+const fmtBRL = (v) => (v != null ? 'R$ ' + Number(v).toFixed(2).replace('.', ',') : '—');
 
 // Tudo aqui exige admin.
 router.use(autenticar, somenteAdmin);
@@ -86,6 +91,16 @@ router.put('/tipos/:id', async (req, res) => {
     res.json(tipo);
   } catch (err) {
     res.status(400).json({ erro: 'Erro ao atualizar categoria-mãe', detalhe: err.message });
+  }
+});
+
+// GET /api/admin/orcamentos-vencidos — lista quem expiraria (NÃO altera nada).
+router.get('/orcamentos-vencidos', async (req, res) => {
+  try {
+    const vencidos = await listarVencidos();
+    res.json({ validadeDias: VALIDADE_ORCAMENTO_DIAS, total: vencidos.length, pedidos: vencidos });
+  } catch (err) {
+    res.status(500).json({ erro: 'Erro ao consultar orçamentos vencidos', detalhe: err.message });
   }
 });
 
@@ -169,7 +184,7 @@ router.put('/pedidos/:id/orcar', async (req, res) => {
     const { versoes, itensAvulsos, itensPersonalizados, valorTotal, observacaoAdmin } = req.body;
     const pedido = await Pedido.findById(req.params.id);
     if (!pedido) return res.status(404).json({ erro: 'Pedido não encontrado' });
-    if (!['pendente_aprovacao', 'orcado', 'recusado_cliente'].includes(pedido.status)) {
+    if (!['pendente_aprovacao', 'orcado', 'recusado_cliente', 'expirado'].includes(pedido.status)) {
       return res.status(400).json({ erro: 'Este pedido não pode ser orçado no status atual' });
     }
 
@@ -197,9 +212,30 @@ router.put('/pedidos/:id/orcar', async (req, res) => {
     pedido.valorTotal = valorTotal != null ? Number(valorTotal) : calcularTotal(pedido);
     if (observacaoAdmin != null) pedido.observacaoAdmin = observacaoAdmin;
     pedido.status = 'orcado';
+    pedido.dataOrcado = new Date(); // começa a contar o prazo de resposta
 
     await pedido.save();
-    notificarClienteOrcamento(pedido); // avisa o cliente que o orçamento saiu
+    notificarClienteOrcamento(pedido); // avisa o cliente por e-mail
+
+    // Avisa o cliente no Discord que o orçamento saiu (e até quando responder).
+    (async () => {
+      const dono = await User.findById(pedido.cliente).select('discordId');
+      if (!dono?.discordId) return;
+      const prazo = new Date(Date.now() + VALIDADE_ORCAMENTO_DIAS * 86400000);
+      enviarDM(
+        dono.discordId,
+        `🐝 **Seu orçamento da Colmeia está pronto!**
+
+` +
+          `Pedido **#${pedido.numero}** — valor: **${fmtBRL(pedido.valorTotal)}**
+` +
+          `Entre no site para **aceitar ou recusar**: ${APP_URL}/pedido/${pedido._id}
+
+` +
+          `⏳ Você tem até **${prazo.toLocaleDateString('pt-BR')}** para responder. ` +
+          `Depois disso o orçamento expira e o pedido é encerrado.`
+      );
+    })().catch(() => {});
     res.json(await popularPedido(Pedido.findById(pedido._id)));
   } catch (err) {
     res.status(500).json({ erro: 'Erro ao orçar pedido', detalhe: err.message });
@@ -211,8 +247,8 @@ router.delete('/pedidos/:id', async (req, res) => {
   try {
     const pedido = await Pedido.findById(req.params.id).select('status');
     if (!pedido) return res.status(404).json({ erro: 'Pedido não encontrado' });
-    if (!['recusado_cliente', 'cancelado'].includes(pedido.status)) {
-      return res.status(400).json({ erro: 'Só dá para excluir pedidos recusados ou cancelados' });
+    if (!['recusado_cliente', 'cancelado', 'expirado'].includes(pedido.status)) {
+      return res.status(400).json({ erro: 'Só dá para excluir pedidos recusados, cancelados ou expirados' });
     }
     await Pedido.deleteOne({ _id: pedido._id });
     res.json({ ok: true });

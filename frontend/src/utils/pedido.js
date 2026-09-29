@@ -8,6 +8,9 @@ export function formatBRL(valor) {
 // Entrega prioritária: taxa fixa somada ao pedido (3 a 5 dias úteis).
 export const TAXA_ENTREGA_PRIORITARIA = 50;
 
+// Dias que o cliente tem para responder ao orçamento antes de expirar.
+export const VALIDADE_ORCAMENTO_DIAS = 25;
+
 // Normaliza texto para busca: minúsculo e sem acento.
 export const normaliza = (s) =>
   (s ?? '').toString().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
@@ -25,6 +28,7 @@ export const STATUS_INFO = {
   orcado: { label: 'Orçamento enviado', cor: 'info' },
   recusado_cliente: { label: 'Recusado', cor: 'danger' },
   cancelado: { label: 'Cancelado', cor: 'danger' },
+  expirado: { label: 'Orçamento expirado', cor: 'danger' },
   aguardando_pagamento: { label: 'Aguardando pagamento', cor: 'warn' },
   fila_producao: { label: 'Na fila de produção', cor: 'info' },
   em_producao: { label: 'Em produção', cor: 'gold' },

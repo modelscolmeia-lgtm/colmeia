@@ -12,6 +12,7 @@ import {
   janelaPrazo,
   DISCORD_CONVITE,
   TAXA_ENTREGA_PRIORITARIA,
+  VALIDADE_ORCAMENTO_DIAS,
 } from '../utils/pedido';
 
 // Lista de itens de uma seleção (versão ou itens avulsos)
@@ -309,6 +310,19 @@ export default function PedidoDetalhe() {
               <strong>envia o comprovante no ticket</strong>; assim que o artista confirmar, seu pedido entra
               na fila de produção.
             </p>
+            {(() => {
+              const base = pedido.dataOrcado || pedido.updatedAt;
+              if (!base) return null;
+              const prazo = new Date(new Date(base).getTime() + VALIDADE_ORCAMENTO_DIAS * 86400000);
+              const dias = Math.ceil((prazo - Date.now()) / 86400000);
+              return (
+                <div className="aviso" style={{ marginTop: 10 }}>
+                  ⏳ Responda até <strong>{prazo.toLocaleDateString('pt-BR')}</strong>
+                  {dias > 0 ? ` (faltam ${dias} ${dias === 1 ? 'dia' : 'dias'})` : ''} — depois disso
+                  o orçamento expira e o pedido é encerrado.
+                </div>
+              );
+            })()}
             <CupomBox pedido={pedido} token={token} onMudou={setPedido} />
             <label style={{ marginTop: 10 }}>
               Seu usuário do Discord <span className="muted" style={{ fontWeight: 400 }}>(opcional, ajuda o artista a te achar)</span>
@@ -371,6 +385,12 @@ export default function PedidoDetalhe() {
         )}
         {pedido.status === 'recusado_cliente' && <p className="muted">Você recusou este orçamento.</p>}
         {pedido.status === 'cancelado' && <p className="muted">Este pedido foi cancelado.</p>}
+        {pedido.status === 'expirado' && (
+          <div className="aviso">
+            ⌛ <strong>Este orçamento expirou.</strong> Ele ficou {VALIDADE_ORCAMENTO_DIAS} dias sem
+            resposta e foi encerrado. Se ainda quiser o model, é só fazer um novo pedido. 🐝
+          </div>
+        )}
       </div>
     </Layout>
   );

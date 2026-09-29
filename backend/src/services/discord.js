@@ -220,3 +220,25 @@ export async function postarNoTicket(pedido, mensagem) {
     console.error('Erro ao postar no ticket do Discord:', e.message);
   }
 }
+
+// Manda uma DM (mensagem privada) para um usuário do Discord.
+// Silencioso: se a pessoa tiver DM fechada, só loga e segue.
+export async function enviarDM(discordId, mensagem) {
+  if (!DISCORD_ATIVO || !pronto || !discordId) {
+    console.log(`💬 [SIMULAÇÃO] DM para ${discordId || '(sem id)'}: ${mensagem}`);
+    return false;
+  }
+  try {
+    const usuario = await client.users.fetch(discordId);
+    await usuario.send(mensagem);
+    return true;
+  } catch (e) {
+    console.error(`Não foi possível mandar DM para ${discordId}:`, e.message);
+    return false;
+  }
+}
+
+// Avisa todos os artistas (DISCORD_ADMIN_IDS) por DM.
+export async function avisarArtistas(mensagem) {
+  for (const id of ADMIN_IDS) await enviarDM(id, mensagem);
+}

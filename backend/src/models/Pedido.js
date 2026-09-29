@@ -29,6 +29,7 @@ const STATUS = [
   'orcado',
   'recusado_cliente',
   'cancelado',
+  'expirado', // orçamento ficou sem resposta do cliente e venceu
   // cliente aceitou → paga a entrada e envia o comprovante no ticket; artista confirma
   'aguardando_pagamento',
   'fila_producao', // pagamento confirmado → entra na fila (atendimento segue no Discord)
@@ -59,6 +60,9 @@ const pedidoSchema = new mongoose.Schema({
   // entrega prioritária: 3 a 5 dias úteis, cobra a taxa fixa TAXA_ENTREGA_PRIORITARIA
   entregaPrioritaria: { type: Boolean, default: false },
 
+  // quando o artista enviou o orçamento (base para expirar se o cliente não responder)
+  dataOrcado: { type: Date },
+
   valorTotal: { type: Number },
   cupom: { type: String },              // código do cupom aplicado
   descontoValor: { type: Number, default: 0 }, // desconto em R$
@@ -81,4 +85,7 @@ export const STATUS_PEDIDO = STATUS;
 
 // Quanto a entrega prioritária (3 a 5 dias úteis) soma ao valor do pedido.
 export const TAXA_ENTREGA_PRIORITARIA = 50;
+
+// Dias que o cliente tem para responder ao orçamento antes dele expirar sozinho.
+export const VALIDADE_ORCAMENTO_DIAS = 25;
 export default mongoose.model('Pedido', pedidoSchema);
