@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import Layout from '../components/Layout';
+import Cabecalho from '../components/Cabecalho';
 import EstadoVazio from '../components/EstadoVazio';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
@@ -23,11 +24,10 @@ export default function Fila() {
 
   return (
     <Layout>
-      <h1>Fila de produção</h1>
-      <p className="muted">
-        A produção é feita um pedido por vez. O prazo (20 a 45 dias) começa a contar quando o
-        pedido entra em produção.
-      </p>
+      <Cabecalho
+        titulo="Fila de produção"
+        subtitulo="A produção é feita um pedido por vez. O prazo (20 a 45 dias) começa a contar quando o pedido entra em produção."
+      />
 
       {ehAdmin && fila.length > 0 && (
         <>

@@ -1,6 +1,7 @@
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '../components/Layout';
+import Cabecalho from '../components/Cabecalho';
 import { useAuth } from '../context/AuthContext';
 import { useDialog } from '../context/DialogProvider';
 import { api } from '../services/api';
@@ -456,14 +457,12 @@ export default function AdminCatalogo() {
 
   return (
     <Layout>
-      <div className="between">
-        <h1>Gerenciar catálogo</h1>
-        <Link to="/admin"><button className="secundario pequeno">← Voltar ao painel</button></Link>
-      </div>
-      <p className="muted">
-        Edite preços, imagens e disponibilidade. As alterações ficam marcadas como
-        <strong> não salvas</strong> até você clicar em <strong>Salvar tudo</strong>.
-      </p>
+      <Cabecalho
+        titulo="Catálogo"
+        subtitulo="Edite preços, imagens e disponibilidade. As alterações ficam marcadas como não salvas até você clicar em Salvar tudo."
+      >
+        <Link to="/admin"><button className="secundario">Voltar ao painel</button></Link>
+      </Cabecalho>
 
       {/* Barra fixa de salvar (aparece quando há alterações pendentes) */}
       {dirty.size > 0 && (

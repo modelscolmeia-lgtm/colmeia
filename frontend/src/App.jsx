@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { SiteProvider, useSite } from './context/SiteContext';
 import Pausa from './pages/Pausa';
 import Portfolio from './pages/Portfolio';
+import Anuncios from './pages/Anuncios';
 import RotaProtegida from './components/RotaProtegida';
 import Home from './pages/Home';
 import Login from './pages/Login';
@@ -49,6 +50,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/portfolio" element={<Portfolio />} />
+          <Route path="/anuncios" element={<Anuncios />} />
           <Route path="/login" element={<Login />} />
           <Route path="/cadastro" element={<Cadastro />} />
           <Route path="/esqueci-senha" element={<EsqueciSenha />} />

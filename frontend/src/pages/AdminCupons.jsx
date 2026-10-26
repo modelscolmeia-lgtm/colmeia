@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '../components/Layout';
+import Cabecalho from '../components/Cabecalho';
 import { useAuth } from '../context/AuthContext';
 import { useDialog } from '../context/DialogProvider';
 import { api } from '../services/api';
@@ -96,13 +97,9 @@ export default function AdminCupons() {
 
   return (
     <Layout largura="container-narrow">
-      <div className="between">
-        <h1>Cupons</h1>
-        <Link to="/admin"><button className="secundario pequeno">← Painel</button></Link>
-      </div>
-      <p className="muted">
-        Crie cupons de desconto. O cliente (ou você) aplica o código no pedido, na tela de detalhe.
-      </p>
+      <Cabecalho titulo="Cupons" subtitulo="Crie cupons de desconto. O cliente (ou você) aplica o código no pedido, na tela de detalhe.">
+        <Link to="/admin"><button className="secundario">Voltar ao painel</button></Link>
+      </Cabecalho>
 
       <NovoCupom token={token} onCriado={carregar} />
       {erro && <p className="erro">{erro}</p>}

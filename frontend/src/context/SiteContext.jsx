@@ -3,16 +3,16 @@ import { api } from '../services/api';
 
 // Estado público do site: aberto para os clientes ou pausado pelo artista.
 // Se a API não responder, o site é tratado como aberto (nunca trava o cliente por falha de rede).
-const SiteContext = createContext({ aberto: true, mensagem: '', carregado: false, recarregar: () => {} });
+const SiteContext = createContext({ aberto: true, mensagem: '', discordConvite: '', carregado: false, recarregar: () => {} });
 
 export function SiteProvider({ children }) {
-  const [estado, setEstado] = useState({ aberto: true, mensagem: '', carregado: false });
+  const [estado, setEstado] = useState({ aberto: true, mensagem: '', discordConvite: '', carregado: false });
 
   const recarregar = useCallback(
     () =>
       api
         .get('/config')
-        .then((c) => setEstado({ aberto: c.siteAberto !== false, mensagem: c.mensagemPausa || '', carregado: true }))
+        .then((c) => setEstado({ aberto: c.siteAberto !== false, mensagem: c.mensagemPausa || '', discordConvite: c.discordConvite || '', carregado: true }))
         .catch(() => setEstado((e) => ({ ...e, carregado: true }))),
     []
   );

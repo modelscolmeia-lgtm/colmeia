@@ -1,12 +1,12 @@
 import { Link } from 'react-router-dom';
 import Icone from './Icone';
 
-// Estado vazio com a abelha da marca: diz o que está acontecendo e oferece o próximo passo.
+// Estado vazio: diz o que está acontecendo e oferece o próximo passo.
 export default function EstadoVazio({ titulo, texto, acao }) {
   return (
     <div className="vazio" role="status">
       <span className="vazio-abelha" aria-hidden="true">
-        <Icone nome="abelha" tamanho={36} />
+        <Icone nome="estrela" />
       </span>
       <strong className="vazio-titulo">{titulo}</strong>
       {texto && <p className="muted vazio-texto">{texto}</p>}

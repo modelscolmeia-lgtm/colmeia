@@ -225,7 +225,7 @@ export default function PedidoDetalhe() {
 
   return (
     <Layout largura="container-narrow">
-      <Link to="/meus-pedidos" className="muted">← Meus pedidos</Link>
+      <Link to="/meus-pedidos" className="muted link-toque">← Meus pedidos</Link>
       <div className="between" style={{ margin: '12px 0' }}>
         <h1 style={{ margin: 0 }}>
           {pedido.numero ? `#${pedido.numero} ` : ''}
@@ -404,7 +404,7 @@ export default function PedidoDetalhe() {
 
         {pedido.status === 'fila_producao' && (
           <>
-            <p className="ok">Pagamento confirmado! Seu pedido está na fila de produção. <Link to="/fila">Ver a fila</Link></p>
+            <p className="ok">Pagamento confirmado! Seu pedido está na fila de produção. <Link to="/fila" className="link-toque">Ver a fila</Link></p>
             <BlocoDiscord pedido={pedido} />
           </>
         )}

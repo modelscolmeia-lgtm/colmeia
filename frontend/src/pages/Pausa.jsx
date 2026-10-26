@@ -5,15 +5,16 @@ import { DISCORD_CONVITE } from '../utils/pedido';
 
 // Tela que os clientes veem quando o artista pausa o site.
 export default function Pausa() {
-  const { mensagem } = useSite();
+  const { mensagem, discordConvite } = useSite();
+  const convite = discordConvite || DISCORD_CONVITE;
 
   return (
     <Layout largura="container-narrow">
       <div style={{ marginTop: 32 }}>
         <EstadoVazio titulo="Estamos em pausa" texto={mensagem || 'O site está fechado por enquanto. Voltamos em breve!'} />
-        {DISCORD_CONVITE && (
+        {convite && (
           <p className="center" style={{ marginTop: 18 }}>
-            <a href={DISCORD_CONVITE} target="_blank" rel="noopener noreferrer">
+            <a href={convite} target="_blank" rel="noopener noreferrer">
               <button>Entrar no Discord</button>
             </a>
           </p>

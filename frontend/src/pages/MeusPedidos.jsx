@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '../components/Layout';
 import EtapasPedido from '../components/EtapasPedido';
+import Cabecalho from '../components/Cabecalho';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
 import { formatBRL, statusLabel, STATUS_INFO, normaliza } from '../utils/pedido';
@@ -32,10 +33,9 @@ export default function MeusPedidos() {
 
   return (
     <Layout>
-      <div className="between">
-        <h1>Meus pedidos</h1>
-        <Link to="/montar"><button className="pequeno">+ Novo pedido</button></Link>
-      </div>
+      <Cabecalho titulo="Meus pedidos" subtitulo="Acompanhe cada pedido, do orçamento até a entrega.">
+        <Link to="/montar"><button>Novo pedido</button></Link>
+      </Cabecalho>
 
       {pedidos.length > 0 && (
         <input

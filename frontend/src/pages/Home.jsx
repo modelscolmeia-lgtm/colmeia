@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { useAuth } from '../context/AuthContext';
+import trabalhos from '../data/portfolio.json';
 
 const PASSOS = [
   { t: 'Monte seu model', d: 'Escolha skin, cabelo, chifres, asas e tudo mais. Crie quantas versões quiser.' },
@@ -11,33 +12,52 @@ const PASSOS = [
 
 export default function Home() {
   const { usuario } = useAuth();
+  const destaques = trabalhos.slice(0, 4);
 
   return (
     <Layout>
       <section className="hero">
-        <h1><img src="/logo-colmeia.webp" alt="Colmeia" className="hero-logo" width="1200" height="600" fetchpriority="high" /></h1>
-        <p className="lead">
-          Encomende seu <strong>Minecraft custom model</strong> do jeitinho que você imaginou,
-          monte cada detalhe do personagem e acompanhe a produção do começo ao fim.
-        </p>
-        <div className="btn-row center-row">
-          {usuario ? (
-            <Link to="/montar"><button className="cta">Fazer um pedido</button></Link>
-          ) : (
-            <Link to="/login"><button className="cta">Entrar com Discord e fazer pedido</button></Link>
-          )}
-          <Link to="/portfolio"><button className="secundario cta">Ver portfólio</button></Link>
+        <div>
+          <span className="sobrelinha">Minecraft custom models</span>
+          <h1>Seu personagem, feito sob medida</h1>
+          <p className="lead">
+            Monte cada detalhe do seu model, receba o orçamento do artista e acompanhe a produção
+            do começo ao fim.
+          </p>
+          <div className="btn-row">
+            {usuario ? (
+              <Link to="/montar"><button className="cta">Fazer um pedido</button></Link>
+            ) : (
+              <Link to="/login"><button className="cta">Entrar com Discord e pedir</button></Link>
+            )}
+            <Link to="/portfolio"><button className="secundario cta">Ver portfólio</button></Link>
+          </div>
         </div>
+        <img src="/hero-escritorio.webp" alt="" className="hero-arte" width="960" height="706" fetchPriority="high" />
       </section>
 
-      <h2 className="center">Como funciona</h2>
+      <div className="secao-titulo">
+        <h2>Como funciona</h2>
+      </div>
       <div className="passos-grid">
         {PASSOS.map((p, i) => (
           <div className="passo" key={i}>
             <div className="num">{i + 1}</div>
-            <h3 style={{ margin: '0 0 6px' }}>{p.t}</h3>
-            <p className="muted" style={{ margin: 0 }}>{p.d}</p>
+            <h3>{p.t}</h3>
+            <p>{p.d}</p>
           </div>
+        ))}
+      </div>
+
+      <div className="secao-titulo">
+        <h2>Alguns trabalhos</h2>
+        <Link to="/portfolio">Ver portfólio</Link>
+      </div>
+      <div className="home-portfolio">
+        {destaques.map((t) => (
+          <Link to="/portfolio" key={t.imagem} className="portfolio-card" aria-label={t.titulo}>
+            <img src={t.imagem} alt="" width="1080" height="1080" loading="lazy" decoding="async" style={{ display: 'block', width: '100%', height: 'auto', aspectRatio: '1 / 1', objectFit: 'cover' }} />
+          </Link>
         ))}
       </div>
     </Layout>

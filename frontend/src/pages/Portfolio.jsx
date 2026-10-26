@@ -1,100 +1,150 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '../components/Layout';
+import Cabecalho from '../components/Cabecalho';
 import Icone from '../components/Icone';
+import Modal from '../components/Modal';
 import { useAuth } from '../context/AuthContext';
-import trabalhos from '../data/portfolio.json';
+import { useDialog } from '../context/DialogProvider';
+import { api } from '../services/api';
+import { imagemUrl } from '../utils/pedido';
+import fixos from '../data/portfolio.json';
 
-// Quantos hexágonos cabem na linha larga (a linha seguinte tem um a menos, como num favo).
-// Os mesmos limites estão no CSS (--hw por largura de tela).
-function usePorLinha() {
-  const calc = () => {
-    const w = window.innerWidth;
-    return w >= 1160 ? 5 : w >= 860 ? 4 : w >= 600 ? 3 : 2;
-  };
-  const [n, setN] = useState(calc);
-  useEffect(() => {
-    const aoRedimensionar = () => setN(calc());
-    window.addEventListener('resize', aoRedimensionar);
-    return () => window.removeEventListener('resize', aoRedimensionar);
-  }, []);
-  return n;
-}
+const POR_PAGINA = 12;
+const LIMITE_MB = 3;
 
-function emLinhas(itens, n) {
-  const linhas = [];
-  let i = 0;
-  let larga = true;
-  while (i < itens.length) {
-    const tam = larga ? n : n - 1;
-    linhas.push(itens.slice(i, i + tam));
-    i += tam;
-    larga = !larga;
-  }
-  return linhas;
-}
-
-// "Modelo da Operária Dyst" -> "Operária Dyst" (cabe melhor dentro do hexágono)
-const tituloCurto = (t) => t.replace(/^Modelo\s+(d[aeo]s?\s+)?/i, '');
-
-// Galeria dos models já feitos pelo artista: favo de hexágonos + imagem ampliada ao clicar.
+// Galeria dos models já feitos pelo artista. O artista adiciona e remove trabalhos pelo próprio site;
+// os 49 trabalhos do começo ficam fixos no projeto.
 export default function Portfolio() {
-  const { usuario } = useAuth();
+  const { usuario, token } = useAuth();
+  const { confirmar } = useDialog();
+  const admin = usuario?.role === 'admin';
+
+  const [novos, setNovos] = useState([]); // adicionados pelo artista (banco)
   const [paginas, setPaginas] = useState(1);
   const [aberto, setAberto] = useState(null); // índice do trabalho ampliado
-  const porLinha = usePorLinha();
-  // cada "página" fecha linhas completas do favo (ex.: 4+3+4+3), sem hexágono sozinho no fim
-  const porPagina = (2 * porLinha - 1) * 2;
-  const visiveis = Math.min(trabalhos.length, paginas * porPagina);
+
+  // formulário de novo trabalho
+  const [modal, setModal] = useState(false);
+  const [titulo, setTitulo] = useState('');
+  const [arquivo, setArquivo] = useState(null);
+  const [previa, setPrevia] = useState('');
+  const [enviando, setEnviando] = useState(false);
+  const [erro, setErro] = useState('');
+
+  const carregar = useCallback(() => {
+    api.get('/portfolio').then(setNovos).catch(() => setNovos([]));
+  }, []);
+  useEffect(() => carregar(), [carregar]);
+
+  // lista final: os novos primeiro, depois os fixos
+  const todos = useMemo(
+    () => [
+      ...novos.map((n) => ({ id: n._id, titulo: n.titulo, src: imagemUrl(n.imagem), removivel: true })),
+      ...fixos.map((f) => ({ titulo: f.titulo, src: f.imagem, removivel: false })),
+    ],
+    [novos]
+  );
+  const visiveis = Math.min(todos.length, paginas * POR_PAGINA);
 
   // Esc fecha a imagem ampliada; setas trocam de trabalho.
   useEffect(() => {
     if (aberto == null) return undefined;
     const aoTeclar = (e) => {
       if (e.key === 'Escape') setAberto(null);
-      if (e.key === 'ArrowRight') setAberto((i) => Math.min(trabalhos.length - 1, i + 1));
+      if (e.key === 'ArrowRight') setAberto((i) => Math.min(todos.length - 1, i + 1));
       if (e.key === 'ArrowLeft') setAberto((i) => Math.max(0, i - 1));
     };
     document.addEventListener('keydown', aoTeclar);
     return () => document.removeEventListener('keydown', aoTeclar);
-  }, [aberto]);
+  }, [aberto, todos.length]);
 
-  const mostrados = trabalhos.slice(0, visiveis).map((t, i) => ({ ...t, i }));
+  function escolherArquivo(e) {
+    const f = e.target.files?.[0];
+    setErro('');
+    if (!f) return;
+    if (!f.type.startsWith('image/')) return setErro('Escolha um arquivo de imagem.');
+    if (f.size > LIMITE_MB * 1024 * 1024) return setErro(`A imagem passa de ${LIMITE_MB} MB. Use uma menor.`);
+    setArquivo(f);
+    setPrevia(URL.createObjectURL(f));
+  }
+
+  function fecharModal() {
+    if (enviando) return;
+    if (previa) URL.revokeObjectURL(previa);
+    setModal(false);
+    setTitulo('');
+    setArquivo(null);
+    setPrevia('');
+    setErro('');
+  }
+
+  async function salvar() {
+    if (!arquivo) return setErro('Escolha uma imagem.');
+    if (!titulo.trim()) return setErro('Dê um título ao trabalho.');
+    setEnviando(true);
+    setErro('');
+    try {
+      const { url } = await api.upload('/admin/upload', arquivo, token);
+      await api.post('/admin/portfolio', { titulo: titulo.trim(), imagem: url }, token);
+      setEnviando(false);
+      fecharModal();
+      carregar();
+      setPaginas(1);
+    } catch (e) {
+      setErro(e.message);
+      setEnviando(false);
+    }
+  }
+
+  async function remover(item) {
+    const ok = await confirmar({
+      titulo: 'Remover do portfólio',
+      mensagem: `Remover "${item.titulo}" do portfólio? A imagem deixa de aparecer no site.`,
+      okLabel: 'Remover',
+      cancelLabel: 'Voltar',
+      perigo: true,
+    });
+    if (!ok) return;
+    try {
+      await api.delete(`/admin/portfolio/${item.id}`, token);
+      carregar();
+    } catch (e) {
+      setErro(e.message);
+    }
+  }
 
   return (
     <Layout>
-      <h1>Portfólio</h1>
-      <p className="muted">
-        Alguns dos models que o artista já fez. Clique num hexágono para ver em tamanho grande.
-      </p>
+      <Cabecalho titulo="Portfólio" subtitulo="Alguns dos models que o artista já fez. Clique numa imagem para ver em tamanho grande.">
+        {admin && (
+          <button onClick={() => setModal(true)}>
+            <Icone nome="portfolio" /> Adicionar imagem
+          </button>
+        )}
+      </Cabecalho>
+      {erro && !modal && <p className="erro">{erro}</p>}
 
-      <div className="hex-favo">
-        {emLinhas(mostrados, porLinha).map((linha, li) => (
-          <div className="hex-linha" key={li}>
-            {linha.map((t) => (
-              <button
-                type="button"
-                key={t.imagem}
-                className="hex-port"
-                onClick={() => setAberto(t.i)}
-                aria-label={`Ampliar: ${t.titulo}`}
-              >
-                <span className="hex-borda">
-                  <span className="hex-miolo">
-                    <img src={t.imagem} alt="" width="1080" height="1080" loading="lazy" decoding="async" />
-                    <span className="hex-titulo">{tituloCurto(t.titulo)}</span>
-                  </span>
-                </span>
+      <div className="portfolio-grade">
+        {todos.slice(0, visiveis).map((t, i) => (
+          <figure className="portfolio-card" key={t.id || t.src}>
+            <button type="button" className="portfolio-img" onClick={() => setAberto(i)} aria-label={`Ampliar: ${t.titulo}`}>
+              <img src={t.src} alt="" width="1080" height="1080" loading="lazy" decoding="async" />
+            </button>
+            {admin && t.removivel && (
+              <button type="button" className="portfolio-remover" onClick={() => remover(t)} aria-label={`Remover ${t.titulo}`} title="Remover do portfólio">
+                <Icone nome="fechar" />
               </button>
-            ))}
-          </div>
+            )}
+            <figcaption>{t.titulo}</figcaption>
+          </figure>
         ))}
       </div>
 
-      <div className="center" style={{ marginTop: 26 }}>
-        {visiveis < trabalhos.length && (
+      <div className="center" style={{ marginTop: 22 }}>
+        {visiveis < todos.length && (
           <button className="secundario" onClick={() => setPaginas((p) => p + 1)}>
-            Mostrar mais ({trabalhos.length - visiveis} restantes)
+            Mostrar mais ({todos.length - visiveis} restantes)
           </button>
         )}
       </div>
@@ -106,15 +156,42 @@ export default function Portfolio() {
         </Link>
       </div>
 
-      {aberto != null && trabalhos[aberto] && (
-        <div className="lightbox portfolio-lightbox" role="dialog" aria-label={trabalhos[aberto].titulo} onClick={() => setAberto(null)}>
-          <img src={trabalhos[aberto].imagem} alt={trabalhos[aberto].titulo} />
-          <p className="lightbox-legenda">{trabalhos[aberto].titulo} · {aberto + 1} de {trabalhos.length}</p>
+      {aberto != null && todos[aberto] && (
+        <div className="lightbox portfolio-lightbox" role="dialog" aria-label={todos[aberto].titulo} onClick={() => setAberto(null)}>
+          <img src={todos[aberto].src} alt={todos[aberto].titulo} />
+          <p className="lightbox-legenda">{todos[aberto].titulo} · {aberto + 1} de {todos.length}</p>
           <button className="lightbox-fechar" onClick={() => setAberto(null)} aria-label="Fechar">
             <Icone nome="fechar" />
           </button>
         </div>
       )}
+
+      <Modal
+        aberto={modal}
+        titulo="Adicionar ao portfólio"
+        onFechar={fecharModal}
+        footer={
+          <>
+            <button className="secundario" onClick={fecharModal} disabled={enviando}>Cancelar</button>
+            <button onClick={salvar} disabled={enviando || !arquivo || !titulo.trim()}>
+              {enviando ? 'Enviando...' : 'Adicionar'}
+            </button>
+          </>
+        }
+      >
+        <div className="stack" style={{ gap: 14 }}>
+          <label htmlFor="port-titulo">
+            Título do trabalho
+            <input id="port-titulo" value={titulo} maxLength={120} placeholder="Ex: Modelo da Operária Luna" onChange={(e) => setTitulo(e.target.value)} />
+          </label>
+          <label htmlFor="port-arquivo">
+            Imagem <span className="muted" style={{ fontWeight: 400 }}>(até {LIMITE_MB} MB)</span>
+            <input id="port-arquivo" type="file" accept="image/*" onChange={escolherArquivo} />
+          </label>
+          {previa && <img src={previa} alt="Prévia da imagem escolhida" className="portfolio-previa" />}
+          {erro && <p className="erro" style={{ margin: 0 }}>{erro}</p>}
+        </div>
+      </Modal>
     </Layout>
   );
 }

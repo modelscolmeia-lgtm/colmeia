@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Icone from '../components/Icone';
 import EstadoVazio from '../components/EstadoVazio';
+import Cabecalho from '../components/Cabecalho';
 import { useSite } from '../context/SiteContext';
 import { Link } from 'react-router-dom';
 import Layout from '../components/Layout';
@@ -420,10 +421,9 @@ export default function AdminDashboard() {
 
   return (
     <Layout>
-      <div className="between">
-        <h1>Painel do artista</h1>
-        <Link to="/admin/catalogo"><button className="secundario pequeno">Gerenciar catálogo</button></Link>
-      </div>
+      <Cabecalho titulo="Painel do artista" subtitulo="Orce pedidos, confirme pagamentos e acompanhe a produção.">
+        <Link to="/admin/catalogo"><button className="secundario">Gerenciar catálogo</button></Link>
+      </Cabecalho>
 
       {site && (
         <div className={'site-status ' + (site.aberto ? 'aberto' : 'pausado')}>

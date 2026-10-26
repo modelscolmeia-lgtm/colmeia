@@ -5,6 +5,7 @@ import Layout from '../components/Layout';
 import Modal from '../components/Modal';
 import PassosCategorias from '../components/PassosCategorias';
 import Lightbox from '../components/Lightbox';
+import Cabecalho from '../components/Cabecalho';
 import { useAuth } from '../context/AuthContext';
 import { useDialog } from '../context/DialogProvider';
 import { api } from '../services/api';
@@ -82,8 +83,8 @@ function CategoriaBloco({ categoria, selecoes, onToggle, onQtd, onObs, onCor, on
           const corAtual = v.cores?.find((c) => c.nome === sel?.cor) || v.cores?.[0];
           const img = corAtual?.imagem || v.imagemExemplo;
           return (
-            <div key={v._id} className={'vcard forma' + (sel ? ' selecionada' : '')}>
-              <div className="forma-borda"><div className="forma-in vcard-in">
+            <div key={v._id} className={'vcard' + (sel ? ' selecionada' : '')}>
+              <div className="vcard-in">
               {/* foto grande: com imagem, clicar amplia; sem imagem, clicar escolhe */}
               {img ? (
                 <button
@@ -93,7 +94,7 @@ function CategoriaBloco({ categoria, selecoes, onToggle, onQtd, onObs, onCor, on
                   onClick={() => setZoom(imagemUrl(img))}
                 >
                   <span className="vcard-img">
-                    <span className="vcard-hex">
+                    <span className="vcard-capa">
                       <img src={imagemUrl(img)} alt="" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                     </span>
                   </span>
@@ -101,7 +102,7 @@ function CategoriaBloco({ categoria, selecoes, onToggle, onQtd, onObs, onCor, on
               ) : (
                 <button type="button" className="vcard-foto" tabIndex={-1} aria-hidden="true" onClick={() => onToggle(categoria, v)}>
                   <span className="vcard-img">
-                    <span className="vcard-hex"><span className="vcard-vazio">sem imagem</span></span>
+                    <span className="vcard-capa"><span className="vcard-vazio">sem imagem</span></span>
                   </span>
                 </button>
               )}
@@ -138,7 +139,7 @@ function CategoriaBloco({ categoria, selecoes, onToggle, onQtd, onObs, onCor, on
                 </div>
               )}
               {sel && extras(v, sel)}
-              </div></div>
+              </div>
             </div>
           );
         })}
@@ -405,7 +406,7 @@ export default function MontarPedido() {
 
   return (
     <Layout>
-      <h1>Montar pedido</h1>
+      <Cabecalho titulo="Fazer pedido" subtitulo="Escolha as partes do seu personagem, categoria por categoria. O artista confere tudo e envia o orçamento." />
 
       <div className="btn-row" style={{ marginBottom: 16 }}>
         <button
@@ -430,7 +431,7 @@ export default function MontarPedido() {
           </p>
 
           {versoes.map((versao, i) => (
-            <div className="forma versao-forma" key={i}><div className="forma-borda forma-mel"><div className="forma-in versao-in">
+            <div className="card versao-card" key={i}>
               <div className="between" style={{ marginBottom: 12, alignItems: 'flex-end' }}>
                 <label style={{ flex: 1, maxWidth: 340 }}>
                   Nome do personagem <span className="muted" style={{ fontWeight: 400 }}>(obrigatório)</span>
@@ -469,7 +470,7 @@ export default function MontarPedido() {
                   />
                 )}
               />
-            </div></div></div>
+            </div>
           ))}
 
           <button className="secundario" onClick={addVersao} style={{ marginTop: 12 }}>
@@ -549,9 +550,8 @@ export default function MontarPedido() {
       </div>
 
       {/* Barra de resumo: sempre à vista, no polegar do celular */}
-      <div className="resumo-fixo forma">
-        <div className="forma-borda forma-mel">
-          <div className="forma-in resumo-barra">
+      <div className="resumo-fixo">
+        <div className="resumo-barra">
             <div className="resumo-info">
               <span className="resumo-itens">
                 {totalItens === 0 ? 'Nenhum item ainda' : `${totalItens} ${totalItens === 1 ? 'item' : 'itens'}`}
@@ -565,7 +565,6 @@ export default function MontarPedido() {
             >
               Revisar e enviar
             </button>
-          </div>
         </div>
       </div>
 
