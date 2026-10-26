@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import Portfolio from '../models/Portfolio.js';
+import PortfolioOculto from '../models/PortfolioOculto.js';
 
 const router = Router();
 
@@ -8,6 +9,16 @@ router.get('/', async (req, res) => {
   try {
     const itens = await Portfolio.find().sort({ createdAt: -1 }).select('titulo imagem').lean();
     res.json(itens);
+  } catch (err) {
+    res.status(500).json({ erro: 'Erro ao carregar o portfólio', detalhe: err.message });
+  }
+});
+
+// GET /api/portfolio/ocultos — chaves (caminhos de imagem) dos trabalhos fixos que o artista escondeu.
+router.get('/ocultos', async (req, res) => {
+  try {
+    const itens = await PortfolioOculto.find().select('chave').lean();
+    res.json(itens.map((i) => i.chave));
   } catch (err) {
     res.status(500).json({ erro: 'Erro ao carregar o portfólio', detalhe: err.message });
   }

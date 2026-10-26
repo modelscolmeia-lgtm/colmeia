@@ -15,6 +15,7 @@ import { autenticar, somenteAdmin } from '../middleware/auth.js';
 import { promoverProximo, entrarNaFila, getLimiteFila, setLimiteFila } from '../services/fila.js';
 import { getSite, setSite } from '../services/site.js';
 import Portfolio from '../models/Portfolio.js';
+import PortfolioOculto from '../models/PortfolioOculto.js';
 import Anuncio from '../models/Anuncio.js';
 import { sincronizar, apagarNoDiscord, webhookAtivo, MARCAR } from '../services/discordAnuncios.js';
 import { salvarImagem } from '../services/upload.js';
@@ -67,6 +68,23 @@ router.post('/portfolio', async (req, res) => {
     res.status(201).json({ _id: item._id, titulo: item.titulo, imagem: item.imagem });
   } catch (err) {
     res.status(500).json({ erro: 'Erro ao salvar o trabalho', detalhe: err.message });
+  }
+});
+
+// POST /api/admin/portfolio/remover — remove vários de uma vez.
+// { ids: [...] } apaga os adicionados pelo site; { fixos: [caminhos] } esconde os que vêm no código.
+router.post('/portfolio/remover', async (req, res) => {
+  try {
+    const ids = Array.isArray(req.body.ids) ? req.body.ids.filter((x) => typeof x === 'string') : [];
+    const fixos = Array.isArray(req.body.fixos)
+      ? req.body.fixos.filter((x) => typeof x === 'string' && /^\/portfolio\/[\w.\-]+$/.test(x))
+      : [];
+    if (!ids.length && !fixos.length) return res.status(400).json({ erro: 'Nada selecionado.' });
+    if (ids.length) await Portfolio.deleteMany({ _id: { $in: ids } });
+    for (const chave of fixos) await PortfolioOculto.updateOne({ chave }, { chave }, { upsert: true });
+    res.json({ ok: true, removidos: ids.length + fixos.length });
+  } catch (err) {
+    res.status(500).json({ erro: 'Erro ao remover do portfólio', detalhe: err.message });
   }
 });
 
