@@ -13,6 +13,7 @@ import { listarTipos, slugify } from '../services/tipos.js';
 import { listarVencidos } from '../services/expiracao.js';
 import { autenticar, somenteAdmin } from '../middleware/auth.js';
 import { promoverProximo, entrarNaFila, getLimiteFila, setLimiteFila } from '../services/fila.js';
+import { getSite, setSite } from '../services/site.js';
 import { salvarImagem } from '../services/upload.js';
 import { notificarClienteOrcamento, notificarClienteConcluido } from '../services/email.js';
 import { postarNoTicket, enviarDM } from '../services/discord.js';
@@ -45,6 +46,28 @@ router.put('/config', async (req, res) => {
     res.json({ filaLimite: await setLimiteFila(n) });
   } catch (err) {
     res.status(500).json({ erro: 'Erro ao salvar configurações', detalhe: err.message });
+  }
+});
+
+// GET /api/admin/site — estado do site para os clientes (aberto ou pausado) e o aviso mostrado.
+router.get('/site', async (req, res) => {
+  try {
+    res.json(await getSite());
+  } catch (err) {
+    res.status(500).json({ erro: 'Erro ao ler o estado do site', detalhe: err.message });
+  }
+});
+
+// PUT /api/admin/site — liga/desliga o site para os clientes ({ aberto, mensagem }).
+router.put('/site', async (req, res) => {
+  try {
+    const { aberto, mensagem } = req.body;
+    if (aberto !== undefined && typeof aberto !== 'boolean') {
+      return res.status(400).json({ erro: 'O campo "aberto" precisa ser verdadeiro ou falso.' });
+    }
+    res.json(await setSite({ aberto, mensagem }));
+  } catch (err) {
+    res.status(500).json({ erro: 'Erro ao salvar o estado do site', detalhe: err.message });
   }
 });
 
@@ -175,6 +198,18 @@ router.get('/pedidos', async (req, res) => {
     res.json(pedidos);
   } catch (err) {
     res.status(500).json({ erro: 'Erro ao buscar pedidos', detalhe: err.message });
+  }
+});
+
+// GET /api/admin/contagem-pedidos — quantos pedidos há em cada status (só leitura, para as abas do painel)
+router.get('/contagem-pedidos', async (req, res) => {
+  try {
+    const linhas = await Pedido.aggregate([{ $group: { _id: '$status', n: { $sum: 1 } } }]);
+    const contagem = {};
+    linhas.forEach((l) => { contagem[l._id] = l.n; });
+    res.json(contagem);
+  } catch (err) {
+    res.status(500).json({ erro: 'Erro ao contar pedidos', detalhe: err.message });
   }
 });
 

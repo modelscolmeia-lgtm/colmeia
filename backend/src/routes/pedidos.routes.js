@@ -12,6 +12,7 @@ import {
 } from '../services/email.js';
 import { abrirTicket, postarNoTicket, avisarArtistas } from '../services/discord.js';
 import { contarFila, getLimiteFila } from '../services/fila.js';
+import { getSite } from '../services/site.js';
 import Tipo from '../models/Tipo.js';
 import { garantirTiposPadrao } from '../services/tipos.js';
 
@@ -45,6 +46,12 @@ function sanitizarItem(item) {
 // POST /api/pedidos — cliente cria um novo pedido
 router.post('/', autenticar, async (req, res) => {
   try {
+    // Site pausado pelo artista: só admins ainda conseguem criar pedidos.
+    if (req.usuario.role !== 'admin') {
+      const site = await getSite();
+      if (!site.aberto) return res.status(503).json({ erro: site.mensagem });
+    }
+
     const { tipo, versoes, itensAvulsos, itensPersonalizados, aceiteTermo, discordUsuario, entregaPrioritaria } = req.body;
 
     await garantirTiposPadrao();
