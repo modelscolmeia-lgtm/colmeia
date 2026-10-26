@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
+import Icone from '../components/Icone';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import Modal from '../components/Modal';
+import PassosCategorias from '../components/PassosCategorias';
+import Lightbox from '../components/Lightbox';
 import { useAuth } from '../context/AuthContext';
 import { useDialog } from '../context/DialogProvider';
 import { api } from '../services/api';
@@ -19,8 +22,7 @@ function CategoriaBloco({ categoria, selecoes, onToggle, onQtd, onObs, onCor, on
   const textoQtd = categoria.textoPorQuantidade; // um texto por unidade (ex: expressões)
   const [zoom, setZoom] = useState(null);
 
-  const comCores = categoria.variantes.filter((v) => v.cores?.length > 0);
-  const semCores = categoria.variantes.filter((v) => !(v.cores?.length > 0));
+  const escolhidos = categoria.variantes.filter((v) => selecoes[v._id]).length;
 
   // Campos extras (qtd + observação/descrições) quando um item está selecionado.
   // Função que retorna JSX (não é componente) para não perder o foco ao digitar.
@@ -67,87 +69,82 @@ function CategoriaBloco({ categoria, selecoes, onToggle, onQtd, onObs, onCor, on
     <div className="categoria-bloco">
       <h4>
         {categoria.nome}{' '}
-        <span className="muted" style={{ fontWeight: 400, fontSize: 13 }}>
+        <span className="muted" style={{ fontWeight: 400, fontSize: 16 }}>
           ({multipla ? 'pode escolher várias' : 'escolha uma'})
         </span>
+        {escolhidos > 0 && <span className="cat-contador">{escolhidos} escolhido{escolhidos > 1 ? 's' : ''}</span>}
       </h4>
 
-      {/* variantes normais — em linha */}
-      {semCores.map((v) => {
-        const sel = selecoes[v._id];
-        return (
-          <div key={v._id}>
-            <div className={'opcao' + (sel ? ' selecionada' : '')} onClick={() => onToggle(categoria, v)}>
-              <input type={multipla ? 'checkbox' : 'radio'} checked={!!sel} readOnly />
-              {v.imagemExemplo && (
-                <img
-                  className="opcao-thumb"
-                  src={imagemUrl(v.imagemExemplo)}
-                  alt={v.nome}
-                  title="Clique para ampliar"
-                  onClick={(e) => { e.stopPropagation(); setZoom(imagemUrl(v.imagemExemplo)); }}
-                  onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                />
+      {/* grade de cards: imagem grande, nome, descrição curta e preço */}
+      <div className="vgrid">
+        {categoria.variantes.map((v) => {
+          const sel = selecoes[v._id];
+          const corAtual = v.cores?.find((c) => c.nome === sel?.cor) || v.cores?.[0];
+          const img = corAtual?.imagem || v.imagemExemplo;
+          return (
+            <div key={v._id} className={'vcard forma' + (sel ? ' selecionada' : '')}>
+              <div className="forma-borda"><div className="forma-in vcard-in">
+              {/* foto grande: com imagem, clicar amplia; sem imagem, clicar escolhe */}
+              {img ? (
+                <button
+                  type="button"
+                  className="vcard-foto"
+                  aria-label={`Ver a imagem de ${v.nome} em tamanho grande`}
+                  onClick={() => setZoom(imagemUrl(img))}
+                >
+                  <span className="vcard-img">
+                    <span className="vcard-hex">
+                      <img src={imagemUrl(img)} alt="" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                    </span>
+                  </span>
+                </button>
+              ) : (
+                <button type="button" className="vcard-foto" tabIndex={-1} aria-hidden="true" onClick={() => onToggle(categoria, v)}>
+                  <span className="vcard-img">
+                    <span className="vcard-hex"><span className="vcard-vazio">sem imagem</span></span>
+                  </span>
+                </button>
               )}
-              <span className="nome">{v.nome}</span>
-              <span className="faixa">{faixaPreco(v)}</span>
-            </div>
-            {sel && <div style={{ margin: '0 0 10px 28px' }}>{extras(v, sel)}</div>}
-          </div>
-        );
-      })}
-
-      {/* variantes com cores — cards grandes (estilo pet), com quadradinhos de cor */}
-      {comCores.length > 0 && (
-        <div className="pet-grid">
-          {comCores.map((v) => {
-            const sel = selecoes[v._id];
-            const corAtual = v.cores.find((c) => c.nome === sel?.cor) || v.cores[0];
-            const imgAtual = corAtual?.imagem || v.imagemExemplo;
-            return (
-              <div
-                key={v._id}
-                className={'pet-card' + (sel ? ' selecionada' : '')}
+              <button
+                type="button"
+                className="vcard-main"
+                aria-pressed={!!sel}
                 onClick={() => onToggle(categoria, v)}
               >
-                <div className="pet-card-img">
-                  {imgAtual ? (
-                    <img src={imagemUrl(imgAtual)} alt={v.nome} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-                  ) : (
-                    <span className="muted" style={{ fontSize: 13 }}>sem imagem</span>
-                  )}
-                </div>
-                <div className="pet-card-info">
+                <span className="vcard-info">
                   <span className="nome">{v.nome}</span>
-                  <span className="faixa">{faixaPreco(v)}</span>
-                </div>
-                {/* quadradinhos de cor: clicar troca a imagem do quadrado grande */}
-                <div className="pet-cores" onClick={(e) => e.stopPropagation()}>
+                  {v.descricao && <span className="desc">{v.descricao}</span>}
+                  <span className="faixa-linha">
+                    <span className="faixa">{faixaPreco(v)}</span>
+                    <span className="vcard-acao">{sel ? 'Escolhido' : 'Escolher'}</span>
+                  </span>
+                </span>
+              </button>
+              {/* quadradinhos de cor: clicar troca a imagem do card */}
+              {v.cores?.length > 0 && (
+                <div className="pet-cores">
                   {v.cores.map((c) => (
                     <button
                       key={c.nome}
                       type="button"
                       title={c.nome}
+                      aria-label={`Cor ${c.nome}`}
                       className={'pet-cor' + (sel?.cor === c.nome ? ' ativa' : '')}
                       onClick={() => onCor(categoria, v, c.nome)}
                     >
-                      {c.imagem ? <img src={imagemUrl(c.imagem)} alt={c.nome} /> : <span>{c.nome[0]}</span>}
+                      {c.imagem ? <img src={imagemUrl(c.imagem)} alt="" /> : <span>{c.nome[0]}</span>}
                     </button>
                   ))}
                 </div>
-                {sel && extras(v, sel)}
-              </div>
-            );
-          })}
-        </div>
-      )}
+              )}
+              {sel && extras(v, sel)}
+              </div></div>
+            </div>
+          );
+        })}
+      </div>
 
-      {zoom && (
-        <div className="lightbox" onClick={() => setZoom(null)}>
-          <img src={zoom} alt="" />
-          <button className="lightbox-fechar" onClick={() => setZoom(null)} aria-label="Fechar">✕</button>
-        </div>
-      )}
+      {zoom && <Lightbox src={zoom} onFechar={() => setZoom(null)} />}
     </div>
   );
 }
@@ -163,7 +160,8 @@ export default function MontarPedido() {
   const [carregando, setCarregando] = useState(true);
 
   // model: lista de personagens { nome, selecoes: { varianteId: {quantidade, observacao} } }
-  const [versoes, setVersoes] = useState([{ nome: '', selecoes: {} }]);
+  const [versoes, setVersoes] = useState([{ nome: '', selecoes: {}, passo: 0 }]);
+  const [passoAvulso, setPassoAvulso] = useState(0);
   // item avulso: um único conjunto de seleções
   const [selecoesAvulso, setSelecoesAvulso] = useState({});
   const [aceite, setAceite] = useState(false);
@@ -251,7 +249,7 @@ export default function MontarPedido() {
   const descricaoModel = (i) => (id, idx, txt) => atualizarVersao(i, (s) => setDescricaoEm(s, id, idx, txt));
 
   function addVersao() {
-    setVersoes((vs) => [...vs, { nome: '', selecoes: {} }]);
+    setVersoes((vs) => [...vs, { nome: '', selecoes: {}, passo: 0 }]);
   }
   async function removerVersao(i) {
     const v = versoes[i];
@@ -268,6 +266,9 @@ export default function MontarPedido() {
       if (!ok) return;
     }
     setVersoes((vs) => vs.filter((_, idx) => idx !== i));
+  }
+  function irParaPasso(i, passo) {
+    setVersoes((vs) => vs.map((v, idx) => (idx === i ? { ...v, passo } : v)));
   }
   function renomearVersao(i, nome) {
     setVersoes((vs) => vs.map((v, idx) => (idx === i ? { ...v, nome } : v)));
@@ -302,11 +303,19 @@ export default function MontarPedido() {
     return { min, max };
   }, [tipo, versoes, selecoesAvulso, varPorId, prioritaria]);
 
+  const totalItens = useMemo(() => {
+    const conta = (sel) => Object.keys(sel).length;
+    return tipo === 'model' ? versoes.reduce((t, v) => t + conta(v.selecoes), 0) : conta(selecoesAvulso);
+  }, [tipo, versoes, selecoesAvulso]);
+  const textoEstimativa = estimativa.max
+    ? `${formatBRL(estimativa.min)}${estimativa.max !== estimativa.min ? ' a ' + formatBRL(estimativa.max) : ''}`
+    : '—';
+
   // Marcar entrega prioritária: explica as condições e pede confirmação.
   async function alternarPrioritaria(marcou) {
     if (!marcou) return setPrioritaria(false);
     const ok = await confirmar({
-      titulo: '⚡ Entrega prioritária',
+      titulo: 'Entrega prioritária',
       mensagem:
         `A entrega prioritária custa ${formatBRL(TAXA_ENTREGA_PRIORITARIA)} a mais que o valor normal do seu model.\n\n` +
         'Em troca, o seu pedido fura a fila e fica pronto em 3 a 5 dias úteis.\n\n' +
@@ -421,7 +430,7 @@ export default function MontarPedido() {
           </p>
 
           {versoes.map((versao, i) => (
-            <div className="card versao-card" key={i}>
+            <div className="forma versao-forma" key={i}><div className="forma-borda forma-mel"><div className="forma-in versao-in">
               <div className="between" style={{ marginBottom: 12, alignItems: 'flex-end' }}>
                 <label style={{ flex: 1, maxWidth: 340 }}>
                   Nome do personagem <span className="muted" style={{ fontWeight: 400 }}>(obrigatório)</span>
@@ -438,19 +447,29 @@ export default function MontarPedido() {
                   </button>
                 )}
               </div>
-              {catModel.map((cat) => (
-                <CategoriaBloco
-                  key={cat._id}
-                  categoria={cat}
-                  selecoes={versao.selecoes}
-                  onToggle={toggleModel(i)}
-                  onQtd={qtdModel(i)}
-                  onObs={obsModel(i)}
-                  onCor={corModel(i)}
-                  onDescricao={descricaoModel(i)}
-                />
-              ))}
-            </div>
+              <PassosCategorias
+                categorias={catModel}
+                selecoes={versao.selecoes}
+                passo={versao.passo}
+                onPasso={(p) => irParaPasso(i, p)}
+                renderCategoria={(cat, aoEscolher) => (
+                  <CategoriaBloco
+                    key={cat._id}
+                    categoria={cat}
+                    selecoes={versao.selecoes}
+                    onToggle={(c, v) => {
+                      const ficara = !versao.selecoes[v._id];
+                      toggleModel(i)(c, v);
+                      aoEscolher(c, ficara);
+                    }}
+                    onQtd={qtdModel(i)}
+                    onObs={obsModel(i)}
+                    onCor={corModel(i)}
+                    onDescricao={descricaoModel(i)}
+                  />
+                )}
+              />
+            </div></div></div>
           ))}
 
           <button className="secundario" onClick={addVersao} style={{ marginTop: 12 }}>
@@ -463,18 +482,28 @@ export default function MontarPedido() {
             Itens avulsos são produzidos como um pedido separado do model.
           </p>
           <div className="card">
-            {catAvulso.map((cat) => (
-              <CategoriaBloco
-                key={cat._id}
-                categoria={cat}
-                selecoes={selecoesAvulso}
-                onToggle={toggleAvulso}
-                onQtd={qtdAvulso}
-                onObs={obsAvulso}
-                onCor={corAvulso}
-                onDescricao={descricaoAvulso}
-              />
-            ))}
+            <PassosCategorias
+              categorias={catAvulso}
+              selecoes={selecoesAvulso}
+              passo={passoAvulso}
+              onPasso={setPassoAvulso}
+              renderCategoria={(cat, aoEscolher) => (
+                <CategoriaBloco
+                  key={cat._id}
+                  categoria={cat}
+                  selecoes={selecoesAvulso}
+                  onToggle={(c, v) => {
+                    const ficara = !selecoesAvulso[v._id];
+                    toggleAvulso(c, v);
+                    aoEscolher(c, ficara);
+                  }}
+                  onQtd={qtdAvulso}
+                  onObs={obsAvulso}
+                  onCor={corAvulso}
+                  onDescricao={descricaoAvulso}
+                />
+              )}
+            />
           </div>
         </>
       )}
@@ -488,7 +517,7 @@ export default function MontarPedido() {
             onChange={(e) => alternarPrioritaria(e.target.checked)}
           />
           <span>
-            ⚡ <strong>Entrega prioritária</strong> — fica pronto em <strong>3 a 5 dias úteis</strong>{' '}
+            <Icone nome="raio" /> <strong>Entrega prioritária</strong> — fica pronto em <strong>3 a 5 dias úteis</strong>{' '}
             por <strong>{formatBRL(TAXA_ENTREGA_PRIORITARIA)}</strong> a mais
           </span>
         </label>
@@ -501,11 +530,7 @@ export default function MontarPedido() {
       <div className="card" style={{ marginTop: 16 }}>
         <div className="between">
           <span className="muted">Estimativa (referência)</span>
-          <span className="preco" style={{ fontSize: 22 }}>
-            {estimativa.max
-              ? `${formatBRL(estimativa.min)}${estimativa.max !== estimativa.min ? ' a ' + formatBRL(estimativa.max) : ''}`
-              : '—'}
-          </span>
+          <span className="preco" style={{ fontSize: 22 }}>{textoEstimativa}</span>
         </div>
         <p className="muted" style={{ fontSize: 15, margin: '6px 0 0' }}>
           O valor final é definido pelo artista no orçamento.
@@ -515,20 +540,33 @@ export default function MontarPedido() {
 
         {fila?.cheia && (
           <div className="aviso" style={{ marginTop: 12 }}>
-            🐝 <strong>A fila está cheia no momento</strong> (máximo de {fila.limite} pedidos em
+            <Icone nome="aviso" /> <strong>A fila está cheia no momento</strong> (máximo de {fila.limite} pedidos em
             produção ao mesmo tempo). Não é possível enviar um novo pedido agora — volte em breve,
             assim que o artista liberar uma vaga.
           </div>
         )}
 
-        <button
-          onClick={revisarEEnviar}
-          style={{ marginTop: 14 }}
-          disabled={fila?.cheia}
-          title={fila?.cheia ? 'A fila está cheia no momento' : undefined}
-        >
-          Revisar e enviar pedido
-        </button>
+      </div>
+
+      {/* Barra de resumo: sempre à vista, no polegar do celular */}
+      <div className="resumo-fixo forma">
+        <div className="forma-borda forma-mel">
+          <div className="forma-in resumo-barra">
+            <div className="resumo-info">
+              <span className="resumo-itens">
+                {totalItens === 0 ? 'Nenhum item ainda' : `${totalItens} ${totalItens === 1 ? 'item' : 'itens'}`}
+              </span>
+              <span className="resumo-valor">{textoEstimativa}</span>
+            </div>
+            <button
+              onClick={revisarEEnviar}
+              disabled={fila?.cheia}
+              title={fila?.cheia ? 'A fila está cheia no momento' : undefined}
+            >
+              Revisar e enviar
+            </button>
+          </div>
+        </div>
       </div>
 
       <Modal
@@ -557,7 +595,7 @@ export default function MontarPedido() {
           className="botao-link"
           onClick={() => setAbriuTermos(true)}
         >
-          📄 Ler os termos e condições {abriuTermos ? '✓' : ''}
+          <Icone nome="documento" /> Ler os termos e condições {abriuTermos && <Icone nome="check" />}
         </a>
 
         <div className="aviso" style={{ marginTop: 14 }}>
@@ -576,7 +614,7 @@ export default function MontarPedido() {
           <span>Li os termos e condições e aceito.</span>
         </label>
         {!abriuTermos && (
-          <p className="muted" style={{ fontSize: 14, marginTop: 4 }}>
+          <p className="muted" style={{ fontSize: 16, marginTop: 4 }}>
             Abra os termos acima para poder marcar o aceite.
           </p>
         )}

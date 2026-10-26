@@ -109,7 +109,7 @@ export default function AdminCupons() {
 
       {cupons.length > 0 && (
         <input
-          placeholder="🔎 Buscar cupom por código ou descrição..."
+          className="busca-input" placeholder="Buscar cupom por código ou descrição..."
           value={busca}
           onChange={(e) => setBusca(e.target.value)}
           style={{ marginTop: 16 }}
@@ -130,10 +130,10 @@ export default function AdminCupons() {
                 <span className="preco">
                   {c.tipo === 'percentual' ? `${c.valor}% OFF` : `R$ ${c.valor} OFF`}
                 </span>
-                <span className="muted" style={{ fontSize: 14 }}>
+                <span className="muted" style={{ fontSize: 16 }}>
                   {' · '}{c.usosPorUsuario > 0 ? `${c.usosPorUsuario}× por pessoa` : 'usos ilimitados'}
                 </span>
-                {c.descricao && <div className="muted" style={{ fontSize: 14 }}>{c.descricao}</div>}
+                {c.descricao && <div className="muted" style={{ fontSize: 16 }}>{c.descricao}</div>}
               </div>
               <div className="btn-row">
                 <button className="secundario pequeno" onClick={() => toggle(c)}>

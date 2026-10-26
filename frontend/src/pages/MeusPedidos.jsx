@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '../components/Layout';
+import EtapasPedido from '../components/EtapasPedido';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
 import { formatBRL, statusLabel, STATUS_INFO, normaliza } from '../utils/pedido';
@@ -38,7 +39,7 @@ export default function MeusPedidos() {
 
       {pedidos.length > 0 && (
         <input
-          placeholder="🔎 Buscar por número, tipo ou status..."
+          className="busca-input" placeholder="Buscar por número, tipo ou status..."
           value={busca}
           onChange={(e) => setBusca(e.target.value)}
           style={{ margin: '12px 0' }}
@@ -75,7 +76,7 @@ export default function MeusPedidos() {
                       {p.numero ? <span className="preco" style={{ marginRight: 6 }}>#{p.numero}</span> : null}
                       {p.tipo === 'model' ? 'Model personalizado' : 'Item avulso'}
                     </strong>
-                    <div className="muted" style={{ fontSize: 13 }}>
+                    <div className="muted" style={{ fontSize: 16 }}>
                       {resumoItens(p)} · {new Date(p.createdAt).toLocaleDateString('pt-BR')}
                     </div>
                   </div>
@@ -86,6 +87,7 @@ export default function MeusPedidos() {
                     )}
                   </div>
                 </div>
+                <EtapasPedido status={p.status} compacto />
               </div>
             </Link>
           );

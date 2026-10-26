@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import Icone from './Icone';
 
 // Modal pixelado, sobreposto à página. Fecha no ESC, no X ou clicando no fundo.
 export default function Modal({ aberto, titulo, children, onFechar, footer }) {
@@ -20,7 +21,7 @@ export default function Modal({ aberto, titulo, children, onFechar, footer }) {
       <div className="modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
         <div className="modal-header">
           <h2>{titulo}</h2>
-          <button className="modal-close" onClick={onFechar} aria-label="Fechar">✕</button>
+          <button className="modal-close" onClick={onFechar} aria-label="Fechar"><Icone nome="fechar" /></button>
         </div>
         <div className="modal-body">{children}</div>
         {footer && <div className="modal-footer">{footer}</div>}

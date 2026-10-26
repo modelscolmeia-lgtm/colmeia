@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Lightbox from './Lightbox';
 import { imagemUrl } from '../utils/pedido';
 
 // Miniatura da imagem de um item, com "clique para ampliar" (lightbox).
@@ -22,16 +23,11 @@ export default function ItemImagem({ url, size = 44 }) {
         src={src}
         alt=""
         title="Clique para ampliar"
-        style={{ width: size, height: size, cursor: 'zoom-in' }}
+        style={{ width: size, height: size, cursor: 'pointer' }}
         onClick={() => setZoom(true)}
         onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }}
       />
-      {zoom && (
-        <div className="lightbox" onClick={() => setZoom(false)}>
-          <img src={src} alt="" />
-          <button className="lightbox-fechar" onClick={() => setZoom(false)} aria-label="Fechar">✕</button>
-        </div>
-      )}
+      {zoom && <Lightbox src={src} onFechar={() => setZoom(false)} />}
     </>
   );
 }

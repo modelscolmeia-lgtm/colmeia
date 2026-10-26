@@ -55,7 +55,7 @@ function Thumb({ url, size = 48 }) {
           width: size, height: size, flex: 'none',
           border: '2px solid var(--field-border)', background: 'var(--card-2)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: 'var(--muted)', fontSize: 12,
+          color: 'var(--muted)', fontSize: 15,
         }}
         title="Sem imagem"
       >
@@ -121,7 +121,7 @@ const VarianteRow = memo(function VarianteRow({ variante: v, id, dirty, token, o
           {/* Cores: cada uma tem imagem própria; no montador, trocar a cor troca a imagem. */}
           <div style={{ marginTop: 10 }}>
             <strong style={{ fontSize: 15 }}>Cores</strong>{' '}
-            <span className="muted" style={{ fontSize: 13 }}>(opcional — ex: pets prontos; trocar a cor troca a imagem)</span>
+            <span className="muted" style={{ fontSize: 16 }}>(opcional — ex: pets prontos; trocar a cor troca a imagem)</span>
             {cores.map((c, i) => (
               <div className="row" key={i} style={{ gap: 8, marginTop: 6 }}>
                 <Thumb url={c.imagem} size={36} />
@@ -139,7 +139,7 @@ const VarianteRow = memo(function VarianteRow({ variante: v, id, dirty, token, o
               <input type="checkbox" checked={!!v.ativo} onChange={(e) => set('ativo', e.target.checked)} />
               <span>Ativa (aparece no catálogo)</span>
             </label>
-            {dirty && <span className="badge warn" style={{ fontSize: 13 }}>não salvo</span>}
+            {dirty && <span className="badge warn" style={{ fontSize: 16 }}>não salvo</span>}
           </div>
         </div>
       </div>
@@ -321,7 +321,7 @@ function Secao({ titulo, categorias, token, dirty, onChangeVariante, onVarianteC
               <span>Visível no site</span>
             </label>
           </div>
-          <div className="muted" style={{ fontSize: 14, marginTop: 4 }}>
+          <div className="muted" style={{ fontSize: 16, marginTop: 4 }}>
             slug: {cat.slug} · ordem {cat.ordem} · {cat.permiteMultiplaSelecao ? 'múltipla' : 'única'}
             {cat.permiteQuantidade ? ' · qtd' : ''}
           </div>
@@ -485,7 +485,7 @@ export default function AdminCatalogo() {
 
       <div className="row" style={{ gap: 8, margin: '12px 0', flexWrap: 'wrap' }}>
         <input
-          placeholder="🔎 Buscar variante ou categoria..."
+          className="busca-input" placeholder="Buscar variante ou categoria..."
           value={busca}
           onChange={(e) => setBusca(e.target.value)}
           style={{ flex: 1, minWidth: 220 }}

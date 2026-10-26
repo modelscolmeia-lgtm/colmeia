@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
+import Icone from '../components/Icone';
+import EtapasPedido, { PROXIMO_PASSO, temEtapas } from '../components/EtapasPedido';
 import { useParams, Link } from 'react-router-dom';
 import Layout from '../components/Layout';
 import ItemImagem from '../components/ItemImagem';
@@ -29,9 +31,9 @@ function ListaItens({ itens }) {
               {it.variante?.nome || 'Item'}
               {it.quantidade > 1 && <span className="muted"> ×{it.quantidade}</span>}
               {it.cor && <span className="muted"> · cor: {it.cor}</span>}
-              {it.observacao && <div className="muted" style={{ fontSize: 13 }}>“{it.observacao}”</div>}
+              {it.observacao && <div className="muted" style={{ fontSize: 16 }}>“{it.observacao}”</div>}
               {it.descricoes?.filter(Boolean).map((d, j) => (
-                <div key={j} className="muted" style={{ fontSize: 13 }}>• {d}</div>
+                <div key={j} className="muted" style={{ fontSize: 16 }}>• {d}</div>
               ))}
             </td>
             <td style={{ textAlign: 'right' }}>
@@ -53,7 +55,7 @@ function BlocoDiscord({ pedido }) {
   if (!pedido.discordCanalUrl && !DISCORD_CONVITE) return null;
   return (
     <div className="aviso" style={{ marginTop: 12 }}>
-      💬 <strong>Atendimento no Discord.</strong> O <strong>pagamento</strong>, a conversa, os
+      <Icone nome="balao" /> <strong>Atendimento no Discord.</strong> O <strong>pagamento</strong>, a conversa, os
       ajustes e a entrega do seu model são combinados direto com o artista no ticket. Entre para
       acertar tudo por lá.
       <div className="btn-row" style={{ marginTop: 8 }}>
@@ -106,7 +108,7 @@ function CupomBox({ pedido, token, onMudou }) {
   if (pedido.cupom) {
     return (
       <div className="row" style={{ marginTop: 8 }}>
-        <span className="ok">Cupom {pedido.cupom} aplicado ✓</span>
+        <span className="ok">Cupom {pedido.cupom} aplicado <Icone nome="check" /></span>
         <button className="secundario pequeno" onClick={remover}>Remover</button>
       </div>
     );
@@ -134,6 +136,7 @@ export default function PedidoDetalhe() {
   const [carregando, setCarregando] = useState(true);
   const [acao, setAcao] = useState(false);
   const [discordUsuario, setDiscordUsuario] = useState('');
+  const [aFrente, setAFrente] = useState(null); // quantos pedidos estão antes do seu na fila
 
   const carregar = useCallback(async () => {
     try {
@@ -149,6 +152,21 @@ export default function PedidoDetalhe() {
   useEffect(() => {
     carregar();
   }, [carregar]);
+
+  // Na fila ou em produção: descobre a posição pelo endpoint público da fila.
+  useEffect(() => {
+    if (!pedido || !['fila_producao', 'em_producao'].includes(pedido.status)) {
+      setAFrente(null);
+      return;
+    }
+    api
+      .get('/fila', token)
+      .then((fila) => {
+        const eu = fila.find((f) => String(f.pedidoId) === String(pedido._id));
+        setAFrente(eu ? eu.posicao - 1 : null);
+      })
+      .catch(() => setAFrente(null));
+  }, [pedido?._id, pedido?.status, token]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function responder(rota, body = null) {
     setAcao(true);
@@ -216,12 +234,29 @@ export default function PedidoDetalhe() {
         <span className={`badge ${info.cor || ''}`}>{statusLabel(pedido.status)}</span>
       </div>
 
+      {temEtapas(pedido.status) && (
+        <div className="etapas-bloco">
+          <EtapasPedido status={pedido.status} />
+          <p className="proximo-passo">
+            {PROXIMO_PASSO[pedido.status]}
+            {pedido.status === 'fila_producao' && aFrente != null && (
+              <strong className="faltam">
+                {' '}
+                {aFrente === 0
+                  ? 'Você é o próximo da fila.'
+                  : `Há ${aFrente} ${aFrente === 1 ? 'pedido' : 'pedidos'} à sua frente.`}
+              </strong>
+            )}
+          </p>
+        </div>
+      )}
+
       {/* Conteúdo do pedido */}
       {pedido.tipo === 'model' ? (
         (pedido.versoes || []).map((v, i) => (
           <div className="card" key={i}>
             <div className="between">
-              <h3 style={{ margin: 0 }}>{v.nome}</h3>
+              <h2 className="titulo-card" style={{ margin: 0 }}>{v.nome}</h2>
               {v.valorAprovado != null && <span className="preco">{formatBRL(v.valorAprovado)}</span>}
             </div>
             <ListaItens itens={v.itens} />
@@ -229,14 +264,14 @@ export default function PedidoDetalhe() {
         ))
       ) : (
         <div className="card">
-          <h3 style={{ marginTop: 0 }}>Itens avulsos</h3>
+          <h2 className="titulo-card" style={{ marginTop: 0 }}>Itens avulsos</h2>
           <ListaItens itens={pedido.itensAvulsos || []} />
         </div>
       )}
 
       {pedido.itensPersonalizados?.length > 0 && (
         <div className="card">
-          <h3 style={{ marginTop: 0 }}>Itens personalizados</h3>
+          <h2 className="titulo-card" style={{ marginTop: 0 }}>Itens personalizados</h2>
           <table>
             <tbody>
               {pedido.itensPersonalizados.map((ip, i) => (
@@ -262,7 +297,7 @@ export default function PedidoDetalhe() {
       <div className="card">
         {pedido.entregaPrioritaria && (
           <div className="aviso" style={{ marginBottom: 12 }}>
-            ⚡ <strong>Entrega prioritária</strong> — seu model fica pronto em{' '}
+            <Icone nome="raio" /> <strong>Entrega prioritária</strong> — seu model fica pronto em{' '}
             <strong>3 a 5 dias úteis</strong>. A taxa de {formatBRL(TAXA_ENTREGA_PRIORITARIA)} já está
             somada no valor.
           </div>
@@ -317,7 +352,7 @@ export default function PedidoDetalhe() {
               const dias = Math.ceil((prazo - Date.now()) / 86400000);
               return (
                 <div className="aviso" style={{ marginTop: 10 }}>
-                  ⏳ Responda até <strong>{prazo.toLocaleDateString('pt-BR')}</strong>
+                  <Icone nome="ampulheta" /> Responda até <strong>{prazo.toLocaleDateString('pt-BR')}</strong>
                   {dias > 0 ? ` (faltam ${dias} ${dias === 1 ? 'dia' : 'dias'})` : ''} — depois disso
                   o orçamento expira e o pedido é encerrado.
                 </div>
@@ -327,10 +362,17 @@ export default function PedidoDetalhe() {
             <label style={{ marginTop: 10 }}>
               Seu usuário do Discord <span className="muted" style={{ fontWeight: 400 }}>(opcional, ajuda o artista a te achar)</span>
               <input
-                placeholder="ex: fulano#0001 ou @fulano"
+                placeholder="ex: seu_usuario"
                 value={discordUsuario}
-                onChange={(e) => setDiscordUsuario(e.target.value)}
+                onChange={(e) => setDiscordUsuario(e.target.value.replace(/^@/, ''))}
+                autoCapitalize="none"
+                autoComplete="off"
+                spellCheck={false}
+                maxLength={40}
               />
+              <span className="muted" style={{ fontWeight: 400, fontSize: 16 }}>
+                É o nome que aparece no seu perfil, sem o @ e sem números depois de um #.
+              </span>
             </label>
             <div className="btn-row" style={{ marginTop: 10 }}>
               <button className="sucesso" onClick={aceitarOrcamento} disabled={acao}>
@@ -345,9 +387,9 @@ export default function PedidoDetalhe() {
 
         {pedido.status === 'aguardando_pagamento' && (
           <>
-            <p className="ok">Orçamento aceito! Falta só o pagamento para entrar na fila. 🐝</p>
+            <p className="ok">Orçamento aceito! Falta só o pagamento para entrar na fila.</p>
             <div className="aviso" style={{ marginTop: 4 }}>
-              💸 <strong>Pague a entrada (50%) via Pix e envie o comprovante no ticket do Discord.</strong>{' '}
+              <Icone nome="moeda" /> <strong>Pague a entrada (50%) via Pix e envie o comprovante no ticket do Discord.</strong>{' '}
               A chave Pix e o nome estão lá no ticket. Assim que o artista confirmar que o valor caiu na conta,
               seu pedido vai automaticamente para a fila de produção.
             </div>
@@ -379,7 +421,7 @@ export default function PedidoDetalhe() {
 
         {pedido.status === 'concluido' && (
           <>
-            <p className="ok">Pedido concluído! 🐝 O artista combina a entrega com você no Discord.</p>
+            <p className="ok">Pedido concluído! O artista combina a entrega com você no Discord.</p>
             <BlocoDiscord pedido={pedido} />
           </>
         )}
@@ -387,8 +429,8 @@ export default function PedidoDetalhe() {
         {pedido.status === 'cancelado' && <p className="muted">Este pedido foi cancelado.</p>}
         {pedido.status === 'expirado' && (
           <div className="aviso">
-            ⌛ <strong>Este orçamento expirou.</strong> Ele ficou {VALIDADE_ORCAMENTO_DIAS} dias sem
-            resposta e foi encerrado. Se ainda quiser o model, é só fazer um novo pedido. 🐝
+            <Icone nome="ampulheta" /> <strong>Este orçamento expirou.</strong> Ele ficou {VALIDADE_ORCAMENTO_DIAS} dias sem
+            resposta e foi encerrado. Se ainda quiser o model, é só fazer um novo pedido.
           </div>
         )}
       </div>

@@ -1,4 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import Icone from '../components/Icone';
+import EstadoVazio from '../components/EstadoVazio';
+import { useSite } from '../context/SiteContext';
 import { Link } from 'react-router-dom';
 import Layout from '../components/Layout';
 import AdminEditarItens from '../components/AdminEditarItens';
@@ -69,13 +72,13 @@ function EditorOrcamento({ pedido, token, onSalvo }) {
             {it.quantidade > 1 && <span className="muted"> ×{it.quantidade}</span>}
             {it.cor && <span className="muted"> · cor: {it.cor}</span>}
             {it.variante && (
-              <span className="muted" style={{ fontSize: 13 }}> (tabela: {faixaPreco(it.variante)})</span>
+              <span className="muted" style={{ fontSize: 16 }}> (tabela: {faixaPreco(it.variante)})</span>
             )}
             {(it.observacao || it.descricao) && (
-              <span className="muted" style={{ fontSize: 13 }}> — {it.observacao || it.descricao}</span>
+              <span className="muted" style={{ fontSize: 16 }}> — {it.observacao || it.descricao}</span>
             )}
             {it.descricoes?.filter(Boolean).length > 0 && (
-              <span className="muted" style={{ fontSize: 13 }}> — {it.descricoes.filter(Boolean).join(' | ')}</span>
+              <span className="muted" style={{ fontSize: 16 }}> — {it.descricoes.filter(Boolean).join(' | ')}</span>
             )}
           </span>
         </div>
@@ -154,7 +157,7 @@ function EditorOrcamento({ pedido, token, onSalvo }) {
       <hr className="divider" />
       {pedido.entregaPrioritaria && (
         <div className="between">
-          <span className="muted">⚡ Entrega prioritária (3 a 5 dias úteis)</span>
+          <span className="muted"><Icone nome="raio" /> Entrega prioritária (3 a 5 dias úteis)</span>
           <span className="preco">+ {formatBRL(TAXA_ENTREGA_PRIORITARIA)}</span>
         </div>
       )}
@@ -206,7 +209,7 @@ function ItensComImagem({ itens }) {
 
 function ResumoItens({ pedido }) {
   return (
-    <div className="stack" style={{ fontSize: 14 }}>
+    <div className="stack" style={{ fontSize: 16 }}>
       {(pedido.versoes || []).map((v) => (
         <div key={v.nome}>
           <strong>{v.nome}</strong>
@@ -229,6 +232,7 @@ export default function AdminDashboard() {
   const [aba, setAba] = useState('pendente_aprovacao');
   const [busca, setBusca] = useState('');
   const [pedidos, setPedidos] = useState([]);
+  const [contagem, setContagem] = useState(null); // null = ainda não carregou (ou backend antigo)
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState('');
   const [editando, setEditando] = useState(null);
@@ -255,12 +259,69 @@ export default function AdminDashboard() {
     try {
       const c = await api.put('/admin/config', { filaLimite: Number(filaLimite) }, token);
       setFilaLimite(c.filaLimite);
-      setMsgLimite('✓ salvo');
+      setMsgLimite('salvo');
       setTimeout(() => setMsgLimite(''), 2000);
     } catch (e) {
       setMsgLimite(e.message);
     } finally {
       setSalvandoLimite(false);
+    }
+  }
+
+  // ---- liga/desliga o site para os clientes ----
+  const { recarregar: recarregarSite } = useSite();
+  const [site, setSite] = useState(null); // { aberto, mensagem, mensagemPersonalizada }
+  const [aviso, setAviso] = useState('');
+  const [mudandoSite, setMudandoSite] = useState(false);
+  const [msgSite, setMsgSite] = useState('');
+
+  useEffect(() => {
+    api
+      .get('/admin/site', token)
+      .then((s) => {
+        setSite(s);
+        setAviso(s.mensagemPersonalizada || '');
+      })
+      .catch(() => {});
+  }, [token]);
+
+  async function alternarSite() {
+    const desligar = site?.aberto !== false;
+    const ok = await confirmar({
+      titulo: desligar ? 'Desligar o site' : 'Ligar o site',
+      mensagem: desligar
+        ? 'Os clientes não vão mais conseguir fazer pedidos nem ver o site: eles verão um aviso de pausa. Você e os outros artistas continuam entrando normalmente.\n\nPedidos que já existem não são apagados.'
+        : 'O site volta a funcionar para os clientes agora.',
+      okLabel: desligar ? 'Desligar' : 'Ligar',
+      cancelLabel: 'Voltar',
+      perigo: desligar,
+    });
+    if (!ok) return;
+    setMudandoSite(true);
+    setMsgSite('');
+    try {
+      const s = await api.put('/admin/site', { aberto: !desligar }, token);
+      setSite(s);
+      recarregarSite();
+    } catch (e) {
+      setMsgSite(e.message);
+    } finally {
+      setMudandoSite(false);
+    }
+  }
+
+  async function salvarAviso() {
+    setMudandoSite(true);
+    setMsgSite('');
+    try {
+      const s = await api.put('/admin/site', { mensagem: aviso }, token);
+      setSite(s);
+      recarregarSite();
+      setMsgSite('salvo');
+    } catch (e) {
+      setMsgSite(e.message);
+    } finally {
+      setMudandoSite(false);
     }
   }
 
@@ -270,6 +331,7 @@ export default function AdminDashboard() {
     try {
       const lista = await api.get(`/admin/pedidos?status=${aba}`, token);
       setPedidos(lista);
+      api.get('/admin/contagem-pedidos', token).then(setContagem).catch(() => {});
     } catch (e) {
       setErro(e.message);
     } finally {
@@ -363,10 +425,29 @@ export default function AdminDashboard() {
         <Link to="/admin/catalogo"><button className="secundario pequeno">Gerenciar catálogo</button></Link>
       </div>
 
-      <div className="card" style={{ marginBottom: 16 }}>
-        <label className="row" style={{ alignItems: 'center', gap: 10, flexWrap: 'wrap', margin: 0 }}>
-          <strong>Limite de pedidos na fila:</strong>
+      {site && (
+        <div className={'site-status ' + (site.aberto ? 'aberto' : 'pausado')}>
+          <div>
+            <strong>{site.aberto ? 'Site aberto' : 'Site pausado'}</strong>
+            <span className="muted">
+              {site.aberto
+                ? 'Os clientes podem ver o site e fazer pedidos.'
+                : 'Os clientes só veem o aviso de pausa. Só admins entram.'}
+            </span>
+          </div>
+          <button className={site.aberto ? 'perigo' : 'sucesso'} onClick={alternarSite} disabled={mudandoSite}>
+            {site.aberto ? 'Desligar o site' : 'Ligar o site'}
+          </button>
+        </div>
+      )}
+      {msgSite && msgSite !== 'salvo' && <p className="erro">{msgSite}</p>}
+
+      <details className="card limite-card">
+        <summary>Configuração da fila <span className="muted">limite de {filaLimite || 0} pedidos</span></summary>
+        <div className="limite-linha">
+          <label htmlFor="limite-fila"><strong>Limite da fila</strong></label>
           <input
+            id="limite-fila"
             type="number"
             min={1}
             step={1}
@@ -377,29 +458,57 @@ export default function AdminDashboard() {
           <button className="pequeno" onClick={salvarLimite} disabled={salvandoLimite || !filaLimite}>
             {salvandoLimite ? 'Salvando...' : 'Salvar'}
           </button>
-          {msgLimite && <span className={msgLimite.startsWith('✓') ? 'ok' : 'erro'}>{msgLimite}</span>}
-        </label>
-        <p className="muted" style={{ margin: '6px 0 0', fontSize: 13 }}>
+          {msgLimite && (
+            <span className={msgLimite === 'salvo' ? 'ok' : 'erro'}>
+              {msgLimite === 'salvo' ? <><Icone nome="check" /> salvo</> : msgLimite}
+            </span>
+          )}
+        </div>
+        <p className="muted limite-nota">
           Ao atingir esse número de pedidos em produção, os clientes não conseguem enviar novos
           pedidos até abrir uma vaga.
         </p>
-      </div>
+        {site && (
+          <div className="aviso-pausa">
+            <label htmlFor="aviso-pausa">Aviso mostrado aos clientes quando o site está pausado</label>
+            <textarea
+              id="aviso-pausa"
+              rows={2}
+              maxLength={300}
+              value={aviso}
+              placeholder="Ex: Estamos de folga até segunda. Voltamos já!"
+              onChange={(e) => setAviso(e.target.value)}
+            />
+            <button className="pequeno" onClick={salvarAviso} disabled={mudandoSite}>Salvar aviso</button>
+            {msgSite === 'salvo' && <span className="ok"> <Icone nome="check" /> salvo</span>}
+          </div>
+        )}
+      </details>
 
-      <div className="btn-row" style={{ marginBottom: 16 }}>
+      <div className="btn-row abas-status" style={{ marginBottom: 16 }}>
         {ABAS.map((a) => (
           <button
             key={a.status}
+            ref={(el) => {
+              // com as abas rolando de lado no celular, mantém a ativa à vista
+              if (el && aba === a.status) el.scrollIntoView?.({ inline: 'nearest', block: 'nearest' });
+            }}
             className={'pequeno ' + (aba === a.status ? '' : 'secundario')}
             onClick={() => setAba(a.status)}
           >
             {a.label}
+            {contagem && (() => {
+              const n = a.status.split(',').reduce((tot, st) => tot + (contagem[st] || 0), 0);
+              const pede = ['pendente_aprovacao', 'aguardando_pagamento'].includes(a.status) && n > 0;
+              return <span className={'aba-n' + (pede ? ' pede' : '')} aria-label={`${n} pedidos`}>{n}</span>;
+            })()}
           </button>
         ))}
       </div>
 
       {pedidos.length > 0 && (
         <input
-          placeholder="🔎 Buscar por cliente, e-mail ou número..."
+          className="busca-input" placeholder="Buscar por cliente, e-mail ou número..."
           value={busca}
           onChange={(e) => setBusca(e.target.value)}
           style={{ marginBottom: 12 }}
@@ -409,7 +518,7 @@ export default function AdminDashboard() {
       {carregando && <p className="muted">Carregando...</p>}
       {erro && <p className="erro">{erro}</p>}
       {!carregando && !pedidos.length && (
-        <div className="card center muted">Nenhum pedido nesta categoria.</div>
+        <EstadoVazio titulo="Nenhum pedido aqui" texto="Quando chegar um pedido nesta etapa, ele aparece nesta lista." />
       )}
 
       <div className="stack">
@@ -428,7 +537,7 @@ export default function AdminDashboard() {
                   {p.numero ? <span className="preco" style={{ marginRight: 6 }}>#{p.numero}</span> : null}
                   <strong>{p.cliente?.nome}</strong>{' '}
                   <span className="muted">· {p.cliente?.email}</span>
-                  <div className="muted" style={{ fontSize: 13 }}>
+                  <div className="muted" style={{ fontSize: 16 }}>
                     {p.tipo === 'model' ? 'Model' : 'Item avulso'} ·{' '}
                     {new Date(p.createdAt).toLocaleDateString('pt-BR')}
                   </div>
@@ -437,7 +546,7 @@ export default function AdminDashboard() {
                   <span className={`badge ${info.cor || ''}`}>{statusLabel(p.status)}</span>
                   {p.entregaPrioritaria && (
                     <div style={{ marginTop: 6 }}>
-                      <span className="badge gold" title="3 a 5 dias úteis">⚡ Prioritária</span>
+                      <span className="badge gold" title="3 a 5 dias úteis"><Icone nome="raio" /> Prioritária</span>
                     </div>
                   )}
                   {p.valorTotal != null && <div className="preco" style={{ marginTop: 6 }}>{formatBRL(p.valorTotal)}</div>}
@@ -479,11 +588,11 @@ export default function AdminDashboard() {
 
               {p.status === 'aguardando_pagamento' && (
                 <div style={{ marginTop: 12 }}>
-                  <div className="aviso" style={{ marginBottom: 8, fontSize: 13 }}>
-                    💸 Confira na sua conta se a <strong>entrada (50%)</strong> caiu. O cliente envia o
+                  <div className="aviso" style={{ marginBottom: 8, fontSize: 16 }}>
+                    <Icone nome="moeda" /> Confira na sua conta se a <strong>entrada (50%)</strong> caiu. O cliente envia o
                     comprovante no ticket do Discord. Confirmando, o pedido entra na fila de produção.
                   </div>
-                  <div className="btn-row">
+                  <div className="btn-row acoes-sep">
                     <button className="sucesso pequeno" onClick={() => confirmarPagamento(p._id)} disabled={acao}>
                       Confirmar pagamento
                     </button>
@@ -497,7 +606,7 @@ export default function AdminDashboard() {
               {['em_producao', 'fila_producao'].includes(p.status) && (
                 <div style={{ marginTop: 12 }}>
                   {p.status === 'fila_producao' && (
-                    <div className="muted" style={{ fontSize: 13, marginBottom: 6 }}>
+                    <div className="muted" style={{ fontSize: 16, marginBottom: 6 }}>
                       Terminou este antes dos outros? Pode concluir fora da ordem — ele sai da fila e
                       abre uma vaga.
                     </div>
@@ -511,7 +620,7 @@ export default function AdminDashboard() {
               {['recusado_cliente', 'cancelado', 'expirado'].includes(p.status) && (
                 <div className="btn-row" style={{ marginTop: 12 }}>
                   {p.status === 'recusado_cliente' && editando !== p._id && (
-                    <span className="muted" style={{ fontSize: 13 }}>
+                    <span className="muted" style={{ fontSize: 16 }}>
                       O cliente recusou. Você pode reorçar acima ou excluir o pedido.
                     </span>
                   )}
@@ -522,16 +631,16 @@ export default function AdminDashboard() {
               )}
 
               {p.observacaoAdmin && (
-                <div className="muted" style={{ marginTop: 10, fontSize: 13 }}>
+                <div className="muted" style={{ marginTop: 10, fontSize: 16 }}>
                   Obs.: {p.observacaoAdmin}
                 </div>
               )}
 
               <div className="row" style={{ marginTop: 10, gap: 14 }}>
-                <Link to={`/pedido/${p._id}`} className="muted" style={{ fontSize: 13 }}>Ver detalhes →</Link>
+                <Link to={`/pedido/${p._id}`} className="muted link-toque" style={{ fontSize: 16 }}>Ver detalhes →</Link>
                 {p.discordCanalUrl && (
-                  <a href={p.discordCanalUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13 }}>
-                    💬 Abrir ticket no Discord
+                  <a href={p.discordCanalUrl} target="_blank" rel="noopener noreferrer" className="link-toque" style={{ fontSize: 16 }}>
+                    <Icone nome="balao" /> Abrir ticket no Discord
                   </a>
                 )}
               </div>

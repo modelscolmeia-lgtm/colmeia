@@ -140,7 +140,7 @@ export default function AdminEditarItens({ pedido, token, catalogo, onSalvo, onC
   return (
     <div className="card" style={{ background: 'var(--card-2)', marginTop: 12 }}>
       <h4 style={{ marginTop: 0 }}>Editar itens do pedido</h4>
-      <p className="muted" style={{ marginTop: 0, fontSize: 14 }}>
+      <p className="muted" style={{ marginTop: 0, fontSize: 16 }}>
         Ao salvar, o pedido volta para "aguardando aprovação" e precisa ser reorçado.
       </p>
 

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import Layout from '../components/Layout';
+import EstadoVazio from '../components/EstadoVazio';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
 import { statusLabel, janelaPrazo, normaliza } from '../utils/pedido';
@@ -34,7 +35,7 @@ export default function Fila() {
             <strong>{fila.length}</strong> {fila.length === 1 ? 'cliente' : 'clientes'} na fila
           </p>
           <input
-            placeholder="🔎 Buscar por cliente ou posição..."
+            className="busca-input" placeholder="Buscar por cliente ou posição..."
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
             style={{ marginBottom: 12 }}
@@ -44,7 +45,13 @@ export default function Fila() {
 
       {carregando && <p className="muted">Carregando...</p>}
       {erro && <p className="erro">{erro}</p>}
-      {!carregando && !fila.length && <div className="card center muted">A fila está vazia no momento.</div>}
+      {!carregando && !erro && !fila.length && (
+        <EstadoVazio
+          titulo="A fila está vazia"
+          texto="Ninguém está esperando agora. O seu pedido pode ser o próximo a entrar."
+          acao={{ para: '/montar', rotulo: 'Fazer um pedido' }}
+        />
+      )}
 
       <div className="stack">
         {fila
@@ -66,7 +73,7 @@ export default function Fila() {
                     {item.cliente}
                     {item.meu && <span className="muted"> (você)</span>}
                   </strong>
-                  <div className="muted" style={{ fontSize: 13 }}>
+                  <div className="muted" style={{ fontSize: 16 }}>
                     {item.tipo === 'model' ? 'Model' : 'Item avulso'}
                   </div>
                 </div>
@@ -76,7 +83,7 @@ export default function Fila() {
                   {statusLabel(item.status)}
                 </span>
                 {item.status === 'em_producao' && (
-                  <div className="muted" style={{ fontSize: 13, marginTop: 4 }}>
+                  <div className="muted" style={{ fontSize: 16, marginTop: 4 }}>
                     {janelaPrazo(item.dataEntrouProducao, item.prazoEstimado) || '20 a 45 dias'}
                   </div>
                 )}

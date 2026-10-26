@@ -1,4 +1,5 @@
 import { useSearchParams } from 'react-router-dom';
+import Icone from '../components/Icone';
 import Layout from '../components/Layout';
 import BotaoDiscord from '../components/BotaoDiscord';
 
@@ -13,13 +14,13 @@ export default function Login() {
 
         {erro && (
           <div className="aviso" style={{ marginBottom: 14 }}>
-            ⚠️ <strong>Não foi possível entrar.</strong>
+            <Icone nome="aviso" /> <strong>Não foi possível entrar.</strong>
             <div style={{ marginTop: 4 }}>
               {erro === 'discord' ? 'O login pelo Discord foi cancelado ou expirou.' : erro}
             </div>
-            <div className="muted" style={{ fontSize: 14, marginTop: 6 }}>
+            <div className="muted" style={{ fontSize: 16, marginTop: 6 }}>
               Espere um pouquinho antes de tentar de novo — clicar várias vezes seguidas costuma
-              piorar. 🐝
+              piorar.
             </div>
           </div>
         )}
@@ -29,8 +30,8 @@ export default function Login() {
           seu pedido (orçamento, pagamento e produção) acontece por lá.
         </p>
         <BotaoDiscord texto="Entrar com Discord" />
-        <p className="muted" style={{ fontSize: 13, marginTop: 12 }}>
-          Ao entrar pela primeira vez, sua conta é criada automaticamente. Não precisa de senha. 🐝
+        <p className="muted" style={{ fontSize: 16, marginTop: 12 }}>
+          Ao entrar pela primeira vez, sua conta é criada automaticamente. Não precisa de senha.
         </p>
       </div>
     </Layout>

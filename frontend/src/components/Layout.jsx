@@ -1,37 +1,75 @@
-import { NavLink, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import Icone from './Icone';
 import { useAuth } from '../context/AuthContext';
+import { useSite } from '../context/SiteContext';
 import { DISCORD_CONVITE } from '../utils/pedido';
 import ThemeToggle from './ThemeToggle';
 
 export default function Layout({ children, largura = 'container' }) {
   const { usuario, logout } = useAuth();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const { aberto: siteAberto } = useSite();
+  const [menuAberto, setMenuAberto] = useState(false);
+
+  // fecha a gaveta ao trocar de página e com a tecla Esc
+  useEffect(() => setMenuAberto(false), [pathname]);
+  useEffect(() => {
+    if (!menuAberto) return undefined;
+    const aoTeclar = (e) => e.key === 'Escape' && setMenuAberto(false);
+    document.addEventListener('keydown', aoTeclar);
+    return () => document.removeEventListener('keydown', aoTeclar);
+  }, [menuAberto]);
 
   function sair() {
+    setMenuAberto(false);
     logout();
     navigate('/');
   }
 
+  const admin = usuario?.role === 'admin';
+  const pausado = !siteAberto && !admin; // site pausado: o cliente não tem para onde "fazer pedido"
+  // links que no celular vão para a gaveta
+  const secundarios = usuario
+    ? [
+        ['/portfolio', 'Portfólio'],
+        ['/meus-pedidos', 'Meus pedidos'],
+        ['/fila', 'Fila'],
+        ...(admin
+          ? [
+              ['/admin', 'Admin'],
+              ['/admin/catalogo', 'Catálogo'],
+              ['/admin/cupons', 'Cupons'],
+            ]
+          : []),
+      ]
+    : [];
+
   return (
     <>
+      <a href="#conteudo" className="pular">Pular para o conteúdo</a>
       <nav className="nav">
         <NavLink to="/" className="nav-logo">Colmeia</NavLink>
 
         {usuario ? (
           <>
-            <NavLink to="/montar">Fazer pedido</NavLink>
-            <NavLink to="/meus-pedidos">Meus pedidos</NavLink>
-            <NavLink to="/fila">Fila</NavLink>
-            {usuario.role === 'admin' && <NavLink to="/admin">Admin</NavLink>}
-            {usuario.role === 'admin' && <NavLink to="/admin/catalogo">Catálogo</NavLink>}
-            {usuario.role === 'admin' && <NavLink to="/admin/cupons">Cupons</NavLink>}
-            <span className="nav-user">Olá, {usuario.nome?.split(' ')[0]}</span>
-            <button className="link" onClick={sair}>Sair</button>
+            <NavLink to="/portfolio" className="nav-btn sec so-desktop">Portfólio</NavLink>
+            {!pausado && <NavLink to="/montar" className="nav-btn">Fazer pedido</NavLink>}
+            <button
+              type="button"
+              className="nav-btn sec nav-menu"
+              aria-expanded={menuAberto}
+              aria-controls="gaveta-menu"
+              onClick={() => setMenuAberto((v) => !v)}
+            >
+              <Icone nome="menu" tamanho={18} /> Menu
+            </button>
           </>
         ) : (
           <>
-            <NavLink to="/login">Entrar</NavLink>
-            <NavLink to="/cadastro">Criar conta</NavLink>
+            <NavLink to="/portfolio" className="nav-btn sec">Portfólio</NavLink>
+            <NavLink to="/login" className="nav-btn">Entrar</NavLink>
           </>
         )}
 
@@ -63,8 +101,30 @@ export default function Layout({ children, largura = 'container' }) {
             </svg>
           </a>
         </span>
+        <ThemeToggle className={usuario ? 'so-desktop' : ''} />
       </nav>
-      <main className={largura}>{children}</main>
+
+      {menuAberto && (
+        <>
+          <div className="gaveta-fundo" onClick={() => setMenuAberto(false)} aria-hidden="true" />
+          <div id="gaveta-menu" className="gaveta" role="dialog" aria-label="Menu">
+            <button type="button" className="link gaveta-fechar" onClick={() => setMenuAberto(false)} aria-label="Fechar menu">
+              <Icone nome="fechar" tamanho={18} />
+            </button>
+            <span className="gaveta-user">Olá, {usuario?.nome?.split(' ')[0]}</span>
+            <div className="gaveta-tema">
+              <span>Tema</span>
+              <ThemeToggle />
+            </div>
+            {secundarios.map(([to, rotulo]) => (
+              <NavLink key={to} to={to} className="gaveta-link" end={to === '/admin'}>{rotulo}</NavLink>
+            ))}
+            <button type="button" className="gaveta-sair" onClick={sair}>Sair</button>
+          </div>
+        </>
+      )}
+
+      <main id="conteudo" className={largura}>{children}</main>
 
       <footer className="site-footer">
         <a
@@ -78,7 +138,6 @@ export default function Layout({ children, largura = 'container' }) {
         </a>
       </footer>
 
-      <ThemeToggle />
     </>
   );
 }
