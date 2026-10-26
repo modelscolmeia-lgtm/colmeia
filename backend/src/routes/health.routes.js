@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { DISCORD_AUTH_ATIVO } from '../services/discordAuth.js';
 import { CLOUDINARY_ATIVO } from '../services/upload.js';
 import { getSite } from '../services/site.js';
+import { DISCORD_CONVITE_URL } from '../services/discord.js';
 
 const router = Router();
 
@@ -24,6 +25,7 @@ router.get('/config', async (req, res) => {
     cloudinary: CLOUDINARY_ATIVO,
     siteAberto: site.aberto,
     mensagemPausa: site.mensagem,
+    discordConvite: DISCORD_CONVITE_URL, // link do servidor (o site mostra o botão do Discord)
   });
 });
 

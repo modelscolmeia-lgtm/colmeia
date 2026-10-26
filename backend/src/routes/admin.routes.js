@@ -14,6 +14,9 @@ import { listarVencidos } from '../services/expiracao.js';
 import { autenticar, somenteAdmin } from '../middleware/auth.js';
 import { promoverProximo, entrarNaFila, getLimiteFila, setLimiteFila } from '../services/fila.js';
 import { getSite, setSite } from '../services/site.js';
+import Portfolio from '../models/Portfolio.js';
+import Anuncio from '../models/Anuncio.js';
+import { sincronizar, apagarNoDiscord, webhookAtivo, MARCAR } from '../services/discordAnuncios.js';
 import { salvarImagem } from '../services/upload.js';
 import { notificarClienteOrcamento, notificarClienteConcluido } from '../services/email.js';
 import { postarNoTicket, enviarDM } from '../services/discord.js';
@@ -46,6 +49,103 @@ router.put('/config', async (req, res) => {
     res.json({ filaLimite: await setLimiteFila(n) });
   } catch (err) {
     res.status(500).json({ erro: 'Erro ao salvar configurações', detalhe: err.message });
+  }
+});
+
+// POST /api/admin/portfolio — adiciona um trabalho ao portfólio ({ titulo, imagem }).
+// A imagem vem do upload (POST /api/admin/upload): URL https ou caminho /uploads/...
+router.post('/portfolio', async (req, res) => {
+  try {
+    const titulo = String(req.body.titulo || '').trim();
+    const imagem = String(req.body.imagem || '').trim();
+    if (!titulo) return res.status(400).json({ erro: 'Dê um título ao trabalho.' });
+    if (titulo.length > 120) return res.status(400).json({ erro: 'O título pode ter no máximo 120 caracteres.' });
+    if (!/^(https:\/\/|\/uploads\/)/.test(imagem)) {
+      return res.status(400).json({ erro: 'Envie uma imagem válida.' });
+    }
+    const item = await Portfolio.create({ titulo, imagem });
+    res.status(201).json({ _id: item._id, titulo: item.titulo, imagem: item.imagem });
+  } catch (err) {
+    res.status(500).json({ erro: 'Erro ao salvar o trabalho', detalhe: err.message });
+  }
+});
+
+// DELETE /api/admin/portfolio/:id — remove um trabalho que foi adicionado pelo site.
+router.delete('/portfolio/:id', async (req, res) => {
+  try {
+    const removido = await Portfolio.findByIdAndDelete(req.params.id);
+    if (!removido) return res.status(404).json({ erro: 'Trabalho não encontrado' });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ erro: 'Erro ao remover o trabalho', detalhe: err.message });
+  }
+});
+
+// ---- Anúncios (aparecem em /anuncios e, se o artista quiser, vão ao Discord por webhook) ----
+function lerAnuncio(body) {
+  const titulo = String(body.titulo || '').trim();
+  const conteudo = String(body.conteudo || '').trim();
+  const imagem = String(body.imagem || '').trim();
+  const importancia = ['comum', 'importante', 'urgente'].includes(body.importancia) ? body.importancia : 'comum';
+  const discordMarcar = MARCAR.includes(body.discordMarcar) ? body.discordMarcar : 'nao';
+  if (!titulo) return { erro: 'Dê um título ao anúncio.' };
+  if (titulo.length > 120) return { erro: 'O título pode ter no máximo 120 caracteres.' };
+  if (conteudo.length > 4000) return { erro: 'A mensagem pode ter no máximo 4000 caracteres.' };
+  if (imagem && !/^(https:\/\/|\/uploads\/)/.test(imagem)) return { erro: 'Envie uma imagem válida.' };
+  return { dados: { titulo, conteudo, importancia, imagem: imagem || undefined, fixado: !!body.fixado, discordMarcar } };
+}
+
+// GET /api/admin/anuncios/config — diz se o envio ao Discord está configurado.
+router.get('/anuncios/config', (req, res) => res.json({ discord: webhookAtivo() }));
+
+router.post('/anuncios', async (req, res) => {
+  try {
+    const { erro, dados } = lerAnuncio(req.body);
+    if (erro) return res.status(400).json({ erro });
+    const autor = await User.findById(req.usuario.id).select('nome').lean();
+    const anuncio = await Anuncio.create({ ...dados, autorNome: autor?.nome || 'Colmeia' });
+    const discord = await sincronizar(anuncio._id);
+    res.status(201).json({ anuncio: await Anuncio.findById(anuncio._id).lean(), discord });
+  } catch (err) {
+    res.status(500).json({ erro: 'Erro ao publicar o anúncio', detalhe: err.message });
+  }
+});
+
+router.put('/anuncios/:id', async (req, res) => {
+  try {
+    const { erro, dados } = lerAnuncio(req.body);
+    if (erro) return res.status(400).json({ erro });
+    const anuncio = await Anuncio.findById(req.params.id);
+    if (!anuncio) return res.status(404).json({ erro: 'Anúncio não encontrado' });
+    // Só avisa com @everyone de novo se ainda não tinha ido ao Discord: editar não pinga ninguém.
+    if (anuncio.discordMsg && dados.discordMarcar !== 'nao') dados.discordMarcar = anuncio.discordMarcar;
+    anuncio.set({ ...dados, imagem: dados.imagem });
+    await anuncio.save();
+    const discord = await sincronizar(anuncio._id);
+    res.json({ anuncio: await Anuncio.findById(anuncio._id).lean(), discord });
+  } catch (err) {
+    res.status(500).json({ erro: 'Erro ao salvar o anúncio', detalhe: err.message });
+  }
+});
+
+router.put('/anuncios/:id/fixar', async (req, res) => {
+  try {
+    const anuncio = await Anuncio.findByIdAndUpdate(req.params.id, { fixado: !!req.body.fixado }, { new: true });
+    if (!anuncio) return res.status(404).json({ erro: 'Anúncio não encontrado' });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ erro: 'Erro ao fixar o anúncio', detalhe: err.message });
+  }
+});
+
+router.delete('/anuncios/:id', async (req, res) => {
+  try {
+    const anuncio = await Anuncio.findByIdAndDelete(req.params.id);
+    if (!anuncio) return res.status(404).json({ erro: 'Anúncio não encontrado' });
+    await apagarNoDiscord(anuncio.discordMsg);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ erro: 'Erro ao apagar o anúncio', detalhe: err.message });
   }
 });
 

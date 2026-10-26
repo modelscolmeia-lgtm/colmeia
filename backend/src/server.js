@@ -14,6 +14,8 @@ import tiposRoutes from './routes/tipos.routes.js';
 import pedidosRoutes from './routes/pedidos.routes.js';
 import adminRoutes from './routes/admin.routes.js';
 import filaRoutes from './routes/fila.routes.js';
+import portfolioRoutes from './routes/portfolio.routes.js';
+import anunciosRoutes from './routes/anuncios.routes.js';
 import { iniciarBot } from './services/discord.js';
 import { agendarExpiracao } from './services/expiracao.js';
 
@@ -38,6 +40,8 @@ app.use('/api/tipos', tiposRoutes);
 app.use('/api/pedidos', pedidosRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/fila', filaRoutes);
+app.use('/api/portfolio', portfolioRoutes);
+app.use('/api/anuncios', anunciosRoutes);
 
 const PORT = process.env.PORT || 4000;
 
