@@ -21,6 +21,9 @@ export default function Portfolio() {
   const admin = usuario?.role === 'admin';
 
   const [novos, setNovos] = useState([]); // adicionados pelo artista (banco)
+  const [ocultos, setOcultos] = useState([]); // fixos que o artista escondeu
+  const [selecionando, setSelecionando] = useState(false);
+  const [marcados, setMarcados] = useState(new Set()); // chaves dos trabalhos marcados
   const [paginas, setPaginas] = useState(1);
   const [aberto, setAberto] = useState(null); // índice do trabalho ampliado
 
@@ -34,16 +37,17 @@ export default function Portfolio() {
 
   const carregar = useCallback(() => {
     api.get('/portfolio').then(setNovos).catch(() => setNovos([]));
+    api.get('/portfolio/ocultos').then(setOcultos).catch(() => setOcultos([]));
   }, []);
   useEffect(() => carregar(), [carregar]);
 
   // lista final: os novos primeiro, depois os fixos
   const todos = useMemo(
     () => [
-      ...novos.map((n) => ({ id: n._id, titulo: n.titulo, src: imagemUrl(n.imagem), removivel: true })),
-      ...fixos.map((f) => ({ titulo: f.titulo, src: f.imagem, removivel: false })),
+      ...novos.map((n) => ({ chave: 'id:' + n._id, id: n._id, titulo: n.titulo, src: imagemUrl(n.imagem) })),
+      ...fixos.filter((f) => !ocultos.includes(f.imagem)).map((f) => ({ chave: 'fixo:' + f.imagem, fixo: f.imagem, titulo: f.titulo, src: f.imagem })),
     ],
-    [novos]
+    [novos, ocultos]
   );
   const visiveis = Math.min(todos.length, paginas * POR_PAGINA);
 
@@ -97,17 +101,36 @@ export default function Portfolio() {
     }
   }
 
-  async function remover(item) {
+  function alternar(chave) {
+    setMarcados((m) => {
+      const n = new Set(m);
+      if (n.has(chave)) n.delete(chave);
+      else n.add(chave);
+      return n;
+    });
+  }
+
+  function sairDaSelecao() {
+    setSelecionando(false);
+    setMarcados(new Set());
+  }
+
+  async function removerMarcados() {
+    const itens = todos.filter((t) => marcados.has(t.chave));
+    if (!itens.length) return;
     const ok = await confirmar({
       titulo: 'Remover do portfólio',
-      mensagem: `Remover "${item.titulo}" do portfólio? A imagem deixa de aparecer no site.`,
+      mensagem: itens.length === 1
+        ? `Remover "${itens[0].titulo}" do portfólio? A imagem deixa de aparecer no site.`
+        : `Remover ${itens.length} imagens do portfólio? Elas deixam de aparecer no site.`,
       okLabel: 'Remover',
       cancelLabel: 'Voltar',
       perigo: true,
     });
     if (!ok) return;
     try {
-      await api.delete(`/admin/portfolio/${item.id}`, token);
+      await api.post('/admin/portfolio/remover', { ids: itens.filter((t) => t.id).map((t) => t.id), fixos: itens.filter((t) => t.fixo).map((t) => t.fixo) }, token);
+      sairDaSelecao();
       carregar();
     } catch (e) {
       setErro(e.message);
@@ -118,23 +141,41 @@ export default function Portfolio() {
     <Layout>
       <Cabecalho titulo="Portfólio" subtitulo="Alguns dos models que o artista já fez. Clique numa imagem para ver em tamanho grande.">
         {admin && (
-          <button onClick={() => setModal(true)}>
-            <Icone nome="portfolio" /> Adicionar imagem
-          </button>
+          <div className="portfolio-admin-acoes">
+            {selecionando ? (
+              <>
+                <button className="perigo" onClick={removerMarcados} disabled={!marcados.size}>
+                  Remover{marcados.size ? ` (${marcados.size})` : ''}
+                </button>
+                <button className="secundario" onClick={sairDaSelecao}>Cancelar</button>
+              </>
+            ) : (
+              <>
+                <button className="secundario" onClick={() => setSelecionando(true)}>Selecionar</button>
+                <button onClick={() => setModal(true)}>
+                  <Icone nome="portfolio" /> Adicionar imagem
+                </button>
+              </>
+            )}
+          </div>
         )}
       </Cabecalho>
       {erro && !modal && <p className="erro">{erro}</p>}
 
       <div className="portfolio-grade">
         {todos.slice(0, visiveis).map((t, i) => (
-          <figure className="portfolio-card" key={t.id || t.src}>
-            <button type="button" className="portfolio-img" onClick={() => setAberto(i)} aria-label={`Ampliar: ${t.titulo}`}>
+          <figure className={'portfolio-card' + (marcados.has(t.chave) ? ' marcado' : '')} key={t.chave}>
+            <button
+              type="button"
+              className="portfolio-img"
+              onClick={() => (selecionando ? alternar(t.chave) : setAberto(i))}
+              aria-label={selecionando ? `Selecionar: ${t.titulo}` : `Ampliar: ${t.titulo}`}
+              aria-pressed={selecionando ? marcados.has(t.chave) : undefined}
+            >
               <img src={t.src} alt="" width="1080" height="1080" loading="lazy" decoding="async" />
             </button>
-            {admin && t.removivel && (
-              <button type="button" className="portfolio-remover" onClick={() => remover(t)} aria-label={`Remover ${t.titulo}`} title="Remover do portfólio">
-                <Icone nome="fechar" />
-              </button>
+            {selecionando && (
+              <span className="portfolio-marca" aria-hidden="true">{marcados.has(t.chave) && <Icone nome="check" />}</span>
             )}
             <figcaption>{t.titulo}</figcaption>
           </figure>

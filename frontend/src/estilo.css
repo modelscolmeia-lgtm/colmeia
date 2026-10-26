@@ -427,3 +427,13 @@ td:last-child .muted, td:last-child .preco { white-space: nowrap; }
 .anuncio-img { display: block; margin-top: 12px; padding: 0; border: 1px solid var(--borda-2); border-radius: var(--raio-p); background: var(--sup-3); cursor: pointer; overflow: hidden; max-width: 100%; }
 .anuncio-img img { display: block; max-width: 100%; max-height: 360px; margin: 0 auto; object-fit: contain; }
 .anuncio-acoes { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+
+/* Pedido: todas as categorias em sequência */
+.categorias-lista { display: flex; flex-direction: column; gap: 34px; }
+
+/* Portfólio: seleção para remover vários */
+.portfolio-admin-acoes { display: flex; flex-wrap: wrap; gap: 8px; }
+.portfolio-card.marcado { border-color: var(--mel); box-shadow: 0 0 0 2px var(--mel); }
+.portfolio-marca { position: absolute; top: 10px; left: 10px; display: grid; place-items: center; width: 30px; height: 30px; color: #1c1300; background: rgba(18, 11, 28, 0.75); border: 2px solid var(--mel-l); border-radius: 8px; pointer-events: none; }
+.portfolio-card.marcado .portfolio-marca { background: var(--mel); }
+.portfolio-marca .icone { width: 18px; height: 18px; }

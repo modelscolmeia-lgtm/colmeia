@@ -161,8 +161,7 @@ export default function MontarPedido() {
   const [carregando, setCarregando] = useState(true);
 
   // model: lista de personagens { nome, selecoes: { varianteId: {quantidade, observacao} } }
-  const [versoes, setVersoes] = useState([{ nome: '', selecoes: {}, passo: 0 }]);
-  const [passoAvulso, setPassoAvulso] = useState(0);
+  const [versoes, setVersoes] = useState([{ nome: '', selecoes: {} }]);
   // item avulso: um único conjunto de seleções
   const [selecoesAvulso, setSelecoesAvulso] = useState({});
   const [aceite, setAceite] = useState(false);
@@ -250,7 +249,7 @@ export default function MontarPedido() {
   const descricaoModel = (i) => (id, idx, txt) => atualizarVersao(i, (s) => setDescricaoEm(s, id, idx, txt));
 
   function addVersao() {
-    setVersoes((vs) => [...vs, { nome: '', selecoes: {}, passo: 0 }]);
+    setVersoes((vs) => [...vs, { nome: '', selecoes: {} }]);
   }
   async function removerVersao(i) {
     const v = versoes[i];
@@ -267,9 +266,6 @@ export default function MontarPedido() {
       if (!ok) return;
     }
     setVersoes((vs) => vs.filter((_, idx) => idx !== i));
-  }
-  function irParaPasso(i, passo) {
-    setVersoes((vs) => vs.map((v, idx) => (idx === i ? { ...v, passo } : v)));
   }
   function renomearVersao(i, nome) {
     setVersoes((vs) => vs.map((v, idx) => (idx === i ? { ...v, nome } : v)));
@@ -450,9 +446,6 @@ export default function MontarPedido() {
               </div>
               <PassosCategorias
                 categorias={catModel}
-                selecoes={versao.selecoes}
-                passo={versao.passo}
-                onPasso={(p) => irParaPasso(i, p)}
                 renderCategoria={(cat, aoEscolher) => (
                   <CategoriaBloco
                     key={cat._id}
@@ -485,9 +478,6 @@ export default function MontarPedido() {
           <div className="card">
             <PassosCategorias
               categorias={catAvulso}
-              selecoes={selecoesAvulso}
-              passo={passoAvulso}
-              onPasso={setPassoAvulso}
               renderCategoria={(cat, aoEscolher) => (
                 <CategoriaBloco
                   key={cat._id}
