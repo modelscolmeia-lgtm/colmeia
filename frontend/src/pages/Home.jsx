@@ -4,7 +4,6 @@ import Layout from '../components/Layout';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
 import { imagemUrl } from '../utils/pedido';
-import fixos from '../data/portfolio.json';
 
 const PASSOS = [
   { t: 'Monte seu model', d: 'Escolha skin, cabelo, chifres, asas e tudo mais. Crie quantas versões quiser.' },
@@ -38,14 +37,10 @@ export default function Home() {
   const { usuario } = useAuth();
   const [destaques, setDestaques] = useState([]);
 
-  // Mesmo portfólio da página /portfolio (adicionados pelo artista + fixos que não foram escondidos)
+  // Mesmo portfólio da página /portfolio (os trabalhos que o artista publicou)
   useEffect(() => {
-    Promise.all([api.get('/portfolio').catch(() => []), api.get('/portfolio/ocultos').catch(() => [])]).then(([novos, ocultos]) => {
-      const todos = [
-        ...novos.map((n) => ({ chave: n._id, titulo: n.titulo, src: imagemUrl(n.imagem) })),
-        ...fixos.filter((f) => !ocultos.includes(f.imagem)).map((f) => ({ chave: f.imagem, titulo: f.titulo, src: f.imagem })),
-      ];
-      setDestaques(sortearDoPeriodo(todos));
+    api.get('/portfolio').catch(() => []).then((novos) => {
+      setDestaques(sortearDoPeriodo(novos.map((n) => ({ chave: n._id, titulo: n.titulo, src: imagemUrl(n.imagem) }))));
     });
   }, []);
 
@@ -84,19 +79,23 @@ export default function Home() {
         ))}
       </div>
 
-      <div className="secao-titulo">
-        <h2>Alguns trabalhos</h2>
-        <Link to="/portfolio">Ver portfólio</Link>
-      </div>
-      <div className="home-portfolio">
-        {destaques.map((t) => (
-          <Link to="/portfolio" key={t.chave} className="portfolio-card" aria-label={t.titulo}>
-            <span className="portfolio-img" style={{ display: 'block', '--fundo': `url("${t.src}")` }}>
-              <img src={t.src} alt="" width="1080" height="1080" loading="lazy" decoding="async" />
-            </span>
-          </Link>
-        ))}
-      </div>
+      {destaques.length > 0 && (
+        <>
+        <div className="secao-titulo">
+          <h2>Alguns trabalhos</h2>
+          <Link to="/portfolio">Ver portfólio</Link>
+        </div>
+        <div className="home-portfolio">
+          {destaques.map((t) => (
+            <Link to="/portfolio" key={t.chave} className="portfolio-card" aria-label={t.titulo}>
+              <span className="portfolio-img" style={{ display: 'block', '--fundo': `url("${t.src}")` }}>
+                <img src={t.src} alt="" width="1080" height="1080" loading="lazy" decoding="async" />
+              </span>
+            </Link>
+          ))}
+        </div>
+        </>
+      )}
     </Layout>
   );
 }

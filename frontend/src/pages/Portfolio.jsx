@@ -3,12 +3,12 @@ import { Link } from 'react-router-dom';
 import Layout from '../components/Layout';
 import Cabecalho from '../components/Cabecalho';
 import Icone from '../components/Icone';
+import EstadoVazio from '../components/EstadoVazio';
 import Modal from '../components/Modal';
 import { useAuth } from '../context/AuthContext';
 import { useDialog } from '../context/DialogProvider';
 import { api } from '../services/api';
 import { imagemUrl } from '../utils/pedido';
-import fixos from '../data/portfolio.json';
 
 const POR_PAGINA = 12;
 const LIMITE_MB = 3;
@@ -17,15 +17,13 @@ const LIMITE_MB = 3;
 // lista antiga por um instante) e é atualizada em seguida.
 let cache = null;
 
-// Galeria dos models já feitos pelo artista. O artista adiciona e remove trabalhos pelo próprio site;
-// os 49 trabalhos do começo ficam fixos no projeto.
+// Galeria dos models já feitos pelo artista. O artista adiciona e remove os trabalhos pelo próprio site.
 export default function Portfolio() {
   const { usuario, token } = useAuth();
   const { confirmar } = useDialog();
   const admin = usuario?.role === 'admin';
 
   const [novos, setNovos] = useState(cache?.novos || []); // adicionados pelo artista (banco)
-  const [ocultos, setOcultos] = useState(cache?.ocultos || []); // fixos que o artista escondeu
   const [carregado, setCarregado] = useState(!!cache); // só mostra a galeria com a lista completa
   const [selecionando, setSelecionando] = useState(false);
   const [marcados, setMarcados] = useState(new Set()); // chaves dos trabalhos marcados
@@ -41,25 +39,17 @@ export default function Portfolio() {
   const [erro, setErro] = useState('');
 
   const carregar = useCallback(() => {
-    Promise.all([
-      api.get('/portfolio').catch(() => []),
-      api.get('/portfolio/ocultos').catch(() => []),
-    ]).then(([n, o]) => {
-      cache = { novos: n, ocultos: o };
+    api.get('/portfolio').catch(() => []).then((n) => {
+      cache = { novos: n };
       setNovos(n);
-      setOcultos(o);
       setCarregado(true);
     });
   }, []);
   useEffect(() => carregar(), [carregar]);
 
-  // lista final: os novos primeiro, depois os fixos
   const todos = useMemo(
-    () => [
-      ...novos.map((n) => ({ chave: 'id:' + n._id, id: n._id, titulo: n.titulo, src: imagemUrl(n.imagem) })),
-      ...fixos.filter((f) => !ocultos.includes(f.imagem)).map((f) => ({ chave: 'fixo:' + f.imagem, fixo: f.imagem, titulo: f.titulo, src: f.imagem })),
-    ],
-    [novos, ocultos]
+    () => novos.map((n) => ({ chave: n._id, id: n._id, titulo: n.titulo, src: imagemUrl(n.imagem) })),
+    [novos]
   );
   const visiveis = Math.min(todos.length, paginas * POR_PAGINA);
 
@@ -141,7 +131,7 @@ export default function Portfolio() {
     });
     if (!ok) return;
     try {
-      await api.post('/admin/portfolio/remover', { ids: itens.filter((t) => t.id).map((t) => t.id), fixos: itens.filter((t) => t.fixo).map((t) => t.fixo) }, token);
+      await api.post('/admin/portfolio/remover', { ids: itens.map((t) => t.id) }, token);
       sairDaSelecao();
       carregar();
     } catch (e) {
@@ -174,6 +164,13 @@ export default function Portfolio() {
       </Cabecalho>
       {erro && !modal && <p className="erro">{erro}</p>}
 
+      {carregado && todos.length === 0 && (
+        <EstadoVazio
+          titulo="Portfólio em atualização"
+          texto={admin ? 'Use "Adicionar imagem" para publicar os primeiros trabalhos.' : 'Em breve os trabalhos do artista aparecem aqui.'}
+        />
+      )}
+
       <div className="portfolio-grade">
         {carregado && todos.slice(0, visiveis).map((t, i) => (
           <figure className={'portfolio-card' + (marcados.has(t.chave) ? ' marcado' : '')} key={t.chave}>
@@ -196,7 +193,7 @@ export default function Portfolio() {
       </div>
 
       <div className="center" style={{ marginTop: 22 }}>
-        {visiveis < todos.length && (
+        {carregado && visiveis < todos.length && (
           <button className="secundario" onClick={() => setPaginas((p) => p + 1)}>
             Mostrar mais ({todos.length - visiveis} restantes)
           </button>
