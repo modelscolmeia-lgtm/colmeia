@@ -1,7 +1,10 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { useAuth } from '../context/AuthContext';
-import trabalhos from '../data/portfolio.json';
+import { api } from '../services/api';
+import { imagemUrl } from '../utils/pedido';
+import fixos from '../data/portfolio.json';
 
 const PASSOS = [
   { t: 'Monte seu model', d: 'Escolha skin, cabelo, chifres, asas e tudo mais. Crie quantas versões quiser.' },
@@ -10,9 +13,41 @@ const PASSOS = [
   { t: 'Acompanhe a fila', d: 'Veja sua posição na fila e o prazo de entrega (20 a 45 dias).' },
 ];
 
+const TROCA_DIAS = 3;
+const QUANTOS = 4;
+
+// Sorteio que só muda a cada TROCA_DIAS dias: o mesmo período dá sempre os mesmos trabalhos,
+// então a Home não muda a cada visita, mas se renova sozinha de tempos em tempos.
+function sortearDoPeriodo(lista) {
+  let x = Math.floor(Date.now() / (TROCA_DIAS * 86400000)) + 1;
+  const aleatorio = () => {
+    x = (x + 0x6d2b79f5) | 0;
+    let t = Math.imul(x ^ (x >>> 15), 1 | x);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  const copia = [...lista];
+  for (let i = copia.length - 1; i > 0; i--) {
+    const j = Math.floor(aleatorio() * (i + 1));
+    [copia[i], copia[j]] = [copia[j], copia[i]];
+  }
+  return copia.slice(0, QUANTOS);
+}
+
 export default function Home() {
   const { usuario } = useAuth();
-  const destaques = trabalhos.slice(0, 4);
+  const [destaques, setDestaques] = useState([]);
+
+  // Mesmo portfólio da página /portfolio (adicionados pelo artista + fixos que não foram escondidos)
+  useEffect(() => {
+    Promise.all([api.get('/portfolio').catch(() => []), api.get('/portfolio/ocultos').catch(() => [])]).then(([novos, ocultos]) => {
+      const todos = [
+        ...novos.map((n) => ({ chave: n._id, titulo: n.titulo, src: imagemUrl(n.imagem) })),
+        ...fixos.filter((f) => !ocultos.includes(f.imagem)).map((f) => ({ chave: f.imagem, titulo: f.titulo, src: f.imagem })),
+      ];
+      setDestaques(sortearDoPeriodo(todos));
+    });
+  }, []);
 
   return (
     <Layout>
@@ -55,8 +90,10 @@ export default function Home() {
       </div>
       <div className="home-portfolio">
         {destaques.map((t) => (
-          <Link to="/portfolio" key={t.imagem} className="portfolio-card" aria-label={t.titulo}>
-            <img src={t.imagem} alt="" width="1080" height="1080" loading="lazy" decoding="async" style={{ display: 'block', width: '100%', height: 'auto', aspectRatio: '1 / 1', objectFit: 'cover' }} />
+          <Link to="/portfolio" key={t.chave} className="portfolio-card" aria-label={t.titulo}>
+            <span className="portfolio-img" style={{ display: 'block', '--fundo': `url("${t.src}")` }}>
+              <img src={t.src} alt="" width="1080" height="1080" loading="lazy" decoding="async" />
+            </span>
           </Link>
         ))}
       </div>
