@@ -94,7 +94,7 @@ function CategoriaBloco({ categoria, selecoes, onToggle, onQtd, onObs, onCor, on
                   onClick={() => setZoom(imagemUrl(img))}
                 >
                   <span className="vcard-img">
-                    <span className="vcard-capa">
+                    <span className="vcard-capa" style={{ '--fundo': `url("${imagemUrl(img)}")` }}>
                       <img src={imagemUrl(img)} alt="" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                     </span>
                   </span>

@@ -180,6 +180,7 @@ export default function Portfolio() {
             <button
               type="button"
               className="portfolio-img"
+              style={{ '--fundo': `url("${t.src}")` }}
               onClick={() => (selecionando ? alternar(t.chave) : setAberto(i))}
               aria-label={selecionando ? `Selecionar: ${t.titulo}` : `Ampliar: ${t.titulo}`}
               aria-pressed={selecionando ? marcados.has(t.chave) : undefined}
