@@ -264,7 +264,7 @@ th { color: var(--suave); font-size: 0.8rem; font-weight: 600; letter-spacing: 0
 .portfolio-card:hover { border-color: var(--mel-d); }
 button.portfolio-img { display: block; width: 100%; min-height: 0; padding: 0; line-height: 0; background: var(--sup-3); border: 0; border-radius: 0; filter: none; }
 button.portfolio-img:hover:not(:disabled) { filter: brightness(1.08); }
-.portfolio-img img { display: block; width: 100%; height: auto; aspect-ratio: 1 / 1; object-fit: cover; }
+.portfolio-img img { display: block; width: 100%; height: auto; aspect-ratio: 1 / 1; object-fit: contain; background: var(--sup-3); }
 .portfolio-card figcaption { padding: 11px 14px 13px; font-family: var(--f-titulo); font-size: 1.02rem; font-weight: 600; line-height: 1.2; color: var(--texto); border-top: 1px solid var(--borda); }
 .portfolio-cta { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 14px 22px; margin-top: 30px; padding: 22px 18px; text-align: center; background: var(--mel-fundo); border: 1px solid rgba(255, 184, 0, 0.35); border-radius: var(--raio); }
 .portfolio-cta strong { font-family: var(--f-titulo); font-size: 1.4rem; color: var(--mel-l); }
@@ -340,7 +340,7 @@ button.vcard-foto { display: block; width: 100%; min-height: 0; padding: 0; line
 button.vcard-foto:hover:not(:disabled) { filter: brightness(1.08); }
 .vcard-img { display: block; }
 .vcard-capa { display: block; aspect-ratio: 4 / 3; overflow: hidden; background: var(--sup-3); }
-.vcard-capa > img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.vcard-capa > img { display: block; width: 100%; height: 100%; object-fit: contain; }
 .vcard-vazio { display: grid; place-items: center; width: 100%; height: 100%; color: var(--suave); font-size: 0.9rem; }
 button.vcard-main { display: flex; flex-direction: column; align-items: stretch; width: 100%; min-height: 0; padding: 0; color: inherit; text-align: left; font-weight: 400; background: none; border: 0; border-radius: 0; }
 button.vcard-main:hover:not(:disabled) { filter: none; }

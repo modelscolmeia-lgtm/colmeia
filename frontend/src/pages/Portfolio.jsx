@@ -13,6 +13,10 @@ import fixos from '../data/portfolio.json';
 const POR_PAGINA = 12;
 const LIMITE_MB = 3;
 
+// Guarda a última lista carregada: ao voltar para a página ela já aparece certa (sem mostrar a
+// lista antiga por um instante) e é atualizada em seguida.
+let cache = null;
+
 // Galeria dos models já feitos pelo artista. O artista adiciona e remove trabalhos pelo próprio site;
 // os 49 trabalhos do começo ficam fixos no projeto.
 export default function Portfolio() {
@@ -20,8 +24,9 @@ export default function Portfolio() {
   const { confirmar } = useDialog();
   const admin = usuario?.role === 'admin';
 
-  const [novos, setNovos] = useState([]); // adicionados pelo artista (banco)
-  const [ocultos, setOcultos] = useState([]); // fixos que o artista escondeu
+  const [novos, setNovos] = useState(cache?.novos || []); // adicionados pelo artista (banco)
+  const [ocultos, setOcultos] = useState(cache?.ocultos || []); // fixos que o artista escondeu
+  const [carregado, setCarregado] = useState(!!cache); // só mostra a galeria com a lista completa
   const [selecionando, setSelecionando] = useState(false);
   const [marcados, setMarcados] = useState(new Set()); // chaves dos trabalhos marcados
   const [paginas, setPaginas] = useState(1);
@@ -36,8 +41,15 @@ export default function Portfolio() {
   const [erro, setErro] = useState('');
 
   const carregar = useCallback(() => {
-    api.get('/portfolio').then(setNovos).catch(() => setNovos([]));
-    api.get('/portfolio/ocultos').then(setOcultos).catch(() => setOcultos([]));
+    Promise.all([
+      api.get('/portfolio').catch(() => []),
+      api.get('/portfolio/ocultos').catch(() => []),
+    ]).then(([n, o]) => {
+      cache = { novos: n, ocultos: o };
+      setNovos(n);
+      setOcultos(o);
+      setCarregado(true);
+    });
   }, []);
   useEffect(() => carregar(), [carregar]);
 
@@ -163,7 +175,7 @@ export default function Portfolio() {
       {erro && !modal && <p className="erro">{erro}</p>}
 
       <div className="portfolio-grade">
-        {todos.slice(0, visiveis).map((t, i) => (
+        {carregado && todos.slice(0, visiveis).map((t, i) => (
           <figure className={'portfolio-card' + (marcados.has(t.chave) ? ' marcado' : '')} key={t.chave}>
             <button
               type="button"
