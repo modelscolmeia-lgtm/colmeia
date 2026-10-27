@@ -80,7 +80,7 @@ function CategoriaBloco({ categoria, selecoes, onToggle, onQtd, onObs, onCor, on
       <div className="vgrid">
         {categoria.variantes.map((v) => {
           const sel = selecoes[v._id];
-          const corAtual = v.cores?.find((c) => c.nome === sel?.cor) || v.cores?.[0];
+          const corAtual = sel?.cor ? v.cores?.find((c) => c.nome === sel.cor) : undefined; // sem cor escolhida: foto principal
           const img = corAtual?.imagem || v.imagemExemplo;
           return (
             <div key={v._id} className={'vcard' + (sel ? ' selecionada' : '')}>
@@ -121,7 +121,7 @@ function CategoriaBloco({ categoria, selecoes, onToggle, onQtd, onObs, onCor, on
                   </span>
                 </span>
               </button>
-              {/* quadradinhos de cor: clicar troca a imagem do card */}
+              {/* quadradinhos de cor: clicar troca a imagem do card; clicar de novo volta à foto principal */}
               {v.cores?.length > 0 && (
                 <div className="pet-cores">
                   {v.cores.map((c) => (
@@ -130,6 +130,7 @@ function CategoriaBloco({ categoria, selecoes, onToggle, onQtd, onObs, onCor, on
                       type="button"
                       title={c.nome}
                       aria-label={`Cor ${c.nome}`}
+                      aria-pressed={sel?.cor === c.nome}
                       className={'pet-cor' + (sel?.cor === c.nome ? ' ativa' : '')}
                       onClick={() => onCor(categoria, v, c.nome)}
                     >
@@ -203,7 +204,6 @@ export default function MontarPedido() {
       quantidade: 1,
       observacao: '',
       descricoes: [],
-      cor: variante.cores?.length ? variante.cores[0].nome : undefined,
     };
   }
   function toggleEm(selecoes, categoria, variante) {
@@ -219,14 +219,16 @@ export default function MontarPedido() {
     novo[variante._id] = novaSelecao(variante);
     return novo;
   }
-  // clicar numa cor: seleciona a variante (se preciso) e define a cor
+  // clicar numa cor: seleciona a variante (se preciso) e define a cor; clicar na cor já escolhida tira a cor
+  // (volta a foto principal do item)
   function setCorEm(selecoes, categoria, variante, cor) {
     const novo = { ...selecoes };
     if (!novo[variante._id]) {
       if (!categoria.permiteMultiplaSelecao) categoria.variantes.forEach((v) => delete novo[v._id]);
       novo[variante._id] = novaSelecao(variante);
     }
-    novo[variante._id] = { ...novo[variante._id], cor };
+    const igual = novo[variante._id].cor === cor;
+    novo[variante._id] = { ...novo[variante._id], cor: igual ? undefined : cor };
     return novo;
   }
   function setDescricaoEm(selecoes, id, index, txt) {
