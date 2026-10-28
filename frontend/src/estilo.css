@@ -1,3 +1,7 @@
+/* Fontes hospedadas no próprio site (mais rápido que o Google Fonts) */
+@font-face { font-family: 'DM Sans'; font-style: normal; font-weight: 400 700; font-display: swap; src: url('/fonts/dm-sans.woff2') format('woff2'); }
+@font-face { font-family: 'Playfair Display'; font-style: normal; font-weight: 600 700; font-display: swap; src: url('/fonts/playfair.woff2') format('woff2'); }
+
 /* Colmeia · loja de Minecraft custom models
    Formato inspirado no sistema da Casa Luckham: barra lateral, cabeçalho de página, painéis sóbrios.
    Só tema escuro: ameixa e mel. Títulos em serifada (Playfair Display), texto em DM Sans. */

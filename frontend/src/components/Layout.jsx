@@ -13,7 +13,7 @@ const TIKTOK_PATH =
 function Marca() {
   return (
     <Link to="/" className="lateral-marca" aria-label="Colmeia, início">
-      <img src="/logo-menu.webp" alt="Colmeia" width="800" height="333" />
+      <img src="/logo-menu-400.webp" srcSet="/logo-menu-400.webp 400w, /logo-menu.webp 800w" sizes="230px" alt="Colmeia" width="800" height="333" />
       <small>Custom models</small>
     </Link>
   );
@@ -112,7 +112,7 @@ export default function Layout({ children, largura = 'container' }) {
           <button type="button" className="icone-botao" onClick={() => setMenuAberto((v) => !v)} aria-expanded={menuAberto} aria-controls="menu-lateral" aria-label="Abrir menu">
             <Icone nome="menu" tamanho={24} />
           </button>
-          <Link to="/" aria-label="Colmeia, início"><img src="/logo-menu.webp" alt="Colmeia" width="800" height="333" /></Link>
+          <Link to="/" aria-label="Colmeia, início"><img src="/logo-menu-400.webp" srcSet="/logo-menu-400.webp 400w, /logo-menu.webp 800w" sizes="230px" alt="Colmeia" width="800" height="333" /></Link>
           {usuario ? <span className="avatar" aria-hidden="true">{iniciais}</span> : <Link to="/login"><button type="button" className="pequeno">Entrar</button></Link>}
         </div>
 

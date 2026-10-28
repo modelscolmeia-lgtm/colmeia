@@ -63,7 +63,7 @@ export default function Home() {
             <Link to="/portfolio"><button className="secundario cta">Ver portfólio</button></Link>
           </div>
         </div>
-        <img src="/hero-escritorio.webp" alt="" className="hero-arte" width="960" height="706" fetchPriority="high" />
+        <img src="/hero-escritorio-640.webp" srcSet="/hero-escritorio-640.webp 640w, /hero-escritorio.webp 960w" sizes="(max-width: 800px) 90vw, 520px" alt="" className="hero-arte" width="960" height="706" fetchPriority="high" />
       </section>
 
       <div className="secao-titulo">
