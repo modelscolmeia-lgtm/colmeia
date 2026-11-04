@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Icone from '../components/Icone';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
@@ -6,7 +6,9 @@ import Modal from '../components/Modal';
 import PassosCategorias from '../components/PassosCategorias';
 import Lightbox from '../components/Lightbox';
 import Cabecalho from '../components/Cabecalho';
+import EstadoVazio from '../components/EstadoVazio';
 import { useAuth } from '../context/AuthContext';
+import { useSite } from '../context/SiteContext';
 import { useDialog } from '../context/DialogProvider';
 import { api } from '../services/api';
 import {
@@ -152,9 +154,26 @@ function CategoriaBloco({ categoria, selecoes, onToggle, onQtd, onObs, onCor, on
 }
 
 export default function MontarPedido() {
-  const { token } = useAuth();
+  const { token, usuario } = useAuth();
+  const { somenteBoosters, discordConvite } = useSite();
   const { confirmar } = useDialog();
   const navigate = useNavigate();
+
+  // Regra "só boosters": o servidor confere (pelo bot do Discord) se a pessoa dá boost.
+  const [permissao, setPermissao] = useState(null); // { ok, mensagem, codigo } | null enquanto confere
+  const [conferindo, setConferindo] = useState(false);
+  const conferirBoost = useCallback(() => {
+    setConferindo(true);
+    api
+      .get('/pedidos/elegibilidade', token)
+      .then(setPermissao)
+      .catch(() => setPermissao({ ok: false, mensagem: 'Não consegui conferir o seu boost agora. Tente de novo em instantes.', codigo: 'indisponivel' }))
+      .finally(() => setConferindo(false));
+  }, [token]);
+  const exigeBoost = somenteBoosters && usuario?.role !== 'admin';
+  useEffect(() => {
+    if (exigeBoost) conferirBoost();
+  }, [exigeBoost, conferirBoost]);
 
   const [tipo, setTipo] = useState('model');
   const [catModel, setCatModel] = useState([]);
@@ -390,6 +409,31 @@ export default function MontarPedido() {
       setErro(e.message);
       setEnviando(false);
     }
+  }
+
+  if (exigeBoost && !permissao?.ok) {
+    return (
+      <Layout largura="container-narrow">
+        <Cabecalho titulo="Fazer pedido" subtitulo="Pedidos exclusivos para quem dá boost no servidor do Discord." />
+        {permissao == null ? (
+          <p className="muted">Conferindo o seu boost...</p>
+        ) : (
+          <>
+            <EstadoVazio titulo="Pedidos só para boosters" texto={permissao.mensagem} />
+            <div className="btn-row" style={{ justifyContent: 'center', marginTop: 16 }}>
+              {discordConvite && (
+                <a href={discordConvite} target="_blank" rel="noopener noreferrer">
+                  <button>Entrar no servidor do Discord</button>
+                </a>
+              )}
+              <button className="secundario" onClick={conferirBoost} disabled={conferindo}>
+                {conferindo ? 'Conferindo...' : 'Já dei boost, conferir de novo'}
+              </button>
+            </div>
+          </>
+        )}
+      </Layout>
+    );
   }
 
   if (carregando) {

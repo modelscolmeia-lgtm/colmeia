@@ -447,3 +447,9 @@ td:last-child .muted, td:last-child .preco { white-space: nowrap; }
 .portfolio-img { aspect-ratio: 4 / 5; overflow: hidden; }
 .portfolio-img::before, .vcard-capa::before { content: ''; position: absolute; inset: -20px; z-index: -1; background: var(--fundo) center / cover; filter: blur(18px) brightness(0.55); }
 .vcard-vazio { height: 100%; aspect-ratio: auto; }
+
+/* Aviso "pedidos só para boosters" na Home */
+.aviso-boost { margin: 0 0 14px; padding: 10px 14px; color: var(--texto); background: var(--mel-fundo); border: 1px solid rgba(255, 184, 0, 0.35); border-radius: var(--raio-p); }
+
+.lista-boosters { margin: 8px 0 12px; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; max-height: 320px; overflow-y: auto; }
+.lista-boosters li { padding: 8px 12px; background: var(--sup-2); border: 1px solid var(--borda); border-radius: var(--raio-p); overflow-wrap: anywhere; }

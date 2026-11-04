@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { useAuth } from '../context/AuthContext';
+import { useSite } from '../context/SiteContext';
 import { api } from '../services/api';
 import { imagemUrl } from '../utils/pedido';
 
@@ -35,6 +36,7 @@ function sortearDoPeriodo(lista) {
 
 export default function Home() {
   const { usuario } = useAuth();
+  const { somenteBoosters } = useSite();
   const [destaques, setDestaques] = useState([]);
 
   // Mesmo portfólio da página /portfolio (os trabalhos que o artista publicou)
@@ -54,6 +56,11 @@ export default function Home() {
             Monte cada detalhe do seu model, receba o orçamento do artista e acompanhe a produção
             do começo ao fim.
           </p>
+          {somenteBoosters && (
+            <p className="aviso-boost">
+              No momento, os pedidos são só para quem dá <strong>boost</strong> no servidor do Discord. O site é aberto para todos.
+            </p>
+          )}
           <div className="btn-row">
             {usuario ? (
               <Link to="/montar"><button className="cta">Fazer um pedido</button></Link>

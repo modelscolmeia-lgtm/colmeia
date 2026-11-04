@@ -311,6 +311,42 @@ export default function AdminDashboard() {
     }
   }
 
+  // ---- boosters do servidor (contagem e nomes no Discord) ----
+  const [boosters, setBoosters] = useState(null);
+  const [carregandoBoosters, setCarregandoBoosters] = useState(false);
+  function carregarBoosters() {
+    setCarregandoBoosters(true);
+    api
+      .get('/admin/boosters', token)
+      .then(setBoosters)
+      .catch(() => setBoosters({ indisponivel: true }))
+      .finally(() => setCarregandoBoosters(false));
+  }
+
+  async function alternarBoosters() {
+    const ligar = !site?.somenteBoosters;
+    const ok = await confirmar({
+      titulo: ligar ? 'Pedidos só para boosters' : 'Abrir pedidos para todos',
+      mensagem: ligar
+        ? 'Só quem der boost no servidor do Discord vai conseguir fazer pedidos. Todo mundo continua vendo o site. Você e os outros artistas não são afetados, e pedidos que já existem seguem normalmente.'
+        : 'Qualquer pessoa que entrar com o Discord poderá fazer pedidos de novo.',
+      okLabel: ligar ? 'Ligar' : 'Desligar',
+      cancelLabel: 'Voltar',
+    });
+    if (!ok) return;
+    setMudandoSite(true);
+    setMsgSite('');
+    try {
+      const s = await api.put('/admin/site', { somenteBoosters: ligar }, token);
+      setSite(s);
+      recarregarSite();
+    } catch (e) {
+      setMsgSite(e.message);
+    } finally {
+      setMudandoSite(false);
+    }
+  }
+
   async function salvarAviso() {
     setMudandoSite(true);
     setMsgSite('');
@@ -439,6 +475,67 @@ export default function AdminDashboard() {
             {site.aberto ? 'Desligar o site' : 'Ligar o site'}
           </button>
         </div>
+      )}
+      {site && (
+        <div className={'site-status ' + (site.somenteBoosters ? 'aberto' : '')}>
+          <div>
+            <strong>{site.somenteBoosters ? 'Pedidos só para boosters' : 'Pedidos abertos a todos'}</strong>
+            <span className="muted">
+              {site.somenteBoosters
+                ? 'Só quem dá boost no servidor do Discord consegue pedir. Todos veem o site.'
+                : 'Qualquer pessoa logada com o Discord pode fazer pedido.'}
+            </span>
+          </div>
+          <button className={site.somenteBoosters ? 'secundario' : ''} onClick={alternarBoosters} disabled={mudandoSite}>
+            {site.somenteBoosters ? 'Abrir para todos' : 'Só boosters'}
+          </button>
+        </div>
+      )}
+      {site && (
+        <details className="card limite-card" onToggle={(e) => e.currentTarget.open && carregarBoosters()}>
+          <summary>
+            Boosters do servidor
+            {boosters?.boosters && <span className="muted"> {boosters.boosters.length} {boosters.boosters.length === 1 ? 'pessoa' : 'pessoas'}</span>}
+          </summary>
+          {carregandoBoosters && <p className="muted">Consultando o Discord...</p>}
+          {!carregandoBoosters && boosters?.ativo === false && (
+            <p className="muted">O bot do Discord não está configurado neste ambiente.</p>
+          )}
+          {!carregandoBoosters && boosters?.indisponivel && (
+            <p className="erro">Não consegui consultar o Discord agora. Tente abrir de novo em instantes.</p>
+          )}
+          {!carregandoBoosters && boosters?.ativo && !boosters.indisponivel && (
+            <>
+              <p>
+                <strong>{boosters.boosts}</strong> {boosters.boosts === 1 ? 'boost' : 'boosts'} no servidor
+                {boosters.servidor ? ` ${boosters.servidor}` : ''} · nível {boosters.nivel}
+                {boosters.listaDisponivel && (
+                  <> · <strong>{boosters.boosters.length}</strong> {boosters.boosters.length === 1 ? 'pessoa' : 'pessoas'} dando boost</>
+                )}
+              </p>
+              {boosters.listaDisponivel ? (
+                boosters.boosters.length ? (
+                  <ul className="lista-boosters">
+                    {boosters.boosters.map((b) => (
+                      <li key={b.id}>
+                        <strong>{b.nome}</strong>
+                        <span className="muted"> @{b.usuario} · desde {new Date(b.desde).toLocaleDateString('pt-BR')}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="muted">Ninguém está dando boost no momento.</p>
+                )
+              ) : (
+                <p className="muted">
+                  Para ver os nomes, ligue o <strong>Server Members Intent</strong> do bot no Portal do Desenvolvedor do Discord
+                  (Bot &gt; Privileged Gateway Intents). A contagem acima já funciona.
+                </p>
+              )}
+              <button className="secundario pequeno" onClick={carregarBoosters} disabled={carregandoBoosters}>Atualizar</button>
+            </>
+          )}
+        </details>
       )}
       {msgSite && msgSite !== 'salvo' && <p className="erro">{msgSite}</p>}
 
