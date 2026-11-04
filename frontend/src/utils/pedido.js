@@ -48,6 +48,22 @@ export function imagemUrl(src) {
   return origem + src;
 }
 
+// Versão leve de uma imagem hospedada no Cloudinary: o próprio Cloudinary entrega no tamanho pedido
+// (`largura` em pixels) e no formato mais leve que o navegador aceita (WebP/AVIF), sem mudar a imagem.
+// Imagens de outros lugares passam direto.
+export function imagemLeve(src, largura) {
+  const url = imagemUrl(src);
+  const m = /^(https:\/\/res\.cloudinary\.com\/[^/]+\/image\/upload\/)(v\d+\/.+)$/.exec(url);
+  return m ? `${m[1]}f_auto,q_auto,w_${largura},c_limit/${m[2]}` : url;
+}
+
+// srcset com duas larguras (tela normal e tela de alta densidade).
+export function imagemSrcSet(src, larguras) {
+  const url = imagemUrl(src);
+  if (!/res\.cloudinary\.com/.test(url)) return undefined;
+  return larguras.map((w) => `${imagemLeve(src, w)} ${w}w`).join(', ');
+}
+
 export function statusLabel(status) {
   return STATUS_INFO[status]?.label || status;
 }

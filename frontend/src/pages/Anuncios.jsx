@@ -8,7 +8,7 @@ import Lightbox from '../components/Lightbox';
 import { useAuth } from '../context/AuthContext';
 import { useDialog } from '../context/DialogProvider';
 import { api } from '../services/api';
-import { imagemUrl } from '../utils/pedido';
+import { imagemUrl, imagemLeve } from '../utils/pedido';
 
 const LIMITE_MB = 3;
 const IMPORTANCIA = {
@@ -174,8 +174,8 @@ export default function Anuncios() {
               <h2 className="anuncio-titulo">{a.titulo}</h2>
               {a.conteudo && <p className="anuncio-texto">{a.conteudo}</p>}
               {a.imagem && (
-                <button type="button" className="anuncio-img" onClick={() => setAmpliar(imagemUrl(a.imagem))} aria-label="Ampliar a imagem do anúncio">
-                  <img src={imagemUrl(a.imagem)} alt="" loading="lazy" decoding="async" />
+                <button type="button" className="anuncio-img" onClick={() => setAmpliar(imagemLeve(a.imagem, 1600))} aria-label="Ampliar a imagem do anúncio">
+                  <img src={imagemLeve(a.imagem, 1000)} alt="" loading="lazy" decoding="async" />
                 </button>
               )}
               {admin && (

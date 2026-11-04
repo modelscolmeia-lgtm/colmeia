@@ -8,7 +8,7 @@ import Modal from '../components/Modal';
 import { useAuth } from '../context/AuthContext';
 import { useDialog } from '../context/DialogProvider';
 import { api } from '../services/api';
-import { imagemUrl } from '../utils/pedido';
+import { imagemUrl, imagemLeve, imagemSrcSet } from '../utils/pedido';
 
 const POR_PAGINA = 12;
 const LIMITE_MB = 3;
@@ -48,7 +48,7 @@ export default function Portfolio() {
   useEffect(() => carregar(), [carregar]);
 
   const todos = useMemo(
-    () => novos.map((n) => ({ chave: n._id, id: n._id, titulo: n.titulo, src: imagemUrl(n.imagem) })),
+    () => novos.map((n) => ({ chave: n._id, id: n._id, titulo: n.titulo, src: imagemLeve(n.imagem, 640), srcSet: imagemSrcSet(n.imagem, [480, 960]), fundo: imagemLeve(n.imagem, 40), grande: imagemLeve(n.imagem, 1600) })),
     [novos]
   );
   const visiveis = Math.min(todos.length, paginas * POR_PAGINA);
@@ -177,12 +177,12 @@ export default function Portfolio() {
             <button
               type="button"
               className="portfolio-img"
-              style={{ '--fundo': `url("${t.src}")` }}
+              style={{ '--fundo': `url("${t.fundo}")` }}
               onClick={() => (selecionando ? alternar(t.chave) : setAberto(i))}
               aria-label={selecionando ? `Selecionar: ${t.titulo}` : `Ampliar: ${t.titulo}`}
               aria-pressed={selecionando ? marcados.has(t.chave) : undefined}
             >
-              <img src={t.src} alt="" width="1080" height="1080" loading="lazy" decoding="async" />
+              <img src={t.src} srcSet={t.srcSet} sizes="(max-width: 800px) 46vw, 260px" alt="" width="1080" height="1080" loading={i < 4 ? 'eager' : 'lazy'} decoding="async" />
             </button>
             {selecionando && (
               <span className="portfolio-marca" aria-hidden="true">{marcados.has(t.chave) && <Icone nome="check" />}</span>
@@ -209,7 +209,7 @@ export default function Portfolio() {
 
       {aberto != null && todos[aberto] && (
         <div className="lightbox portfolio-lightbox" role="dialog" aria-label={todos[aberto].titulo} onClick={() => setAberto(null)}>
-          <img src={todos[aberto].src} alt={todos[aberto].titulo} />
+          <img src={todos[aberto].grande} alt={todos[aberto].titulo} />
           <p className="lightbox-legenda">{todos[aberto].titulo} · {aberto + 1} de {todos.length}</p>
           <button className="lightbox-fechar" onClick={() => setAberto(null)} aria-label="Fechar">
             <Icone nome="fechar" />

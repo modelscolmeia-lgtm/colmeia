@@ -4,7 +4,7 @@ import Layout from '../components/Layout';
 import { useAuth } from '../context/AuthContext';
 import { useSite } from '../context/SiteContext';
 import { api } from '../services/api';
-import { imagemUrl } from '../utils/pedido';
+import { imagemLeve, imagemSrcSet } from '../utils/pedido';
 
 const PASSOS = [
   { t: 'Monte seu model', d: 'Escolha skin, cabelo, chifres, asas e tudo mais. Crie quantas versões quiser.' },
@@ -42,7 +42,7 @@ export default function Home() {
   // Mesmo portfólio da página /portfolio (os trabalhos que o artista publicou)
   useEffect(() => {
     api.get('/portfolio').catch(() => []).then((novos) => {
-      setDestaques(sortearDoPeriodo(novos.map((n) => ({ chave: n._id, titulo: n.titulo, src: imagemUrl(n.imagem) }))));
+      setDestaques(sortearDoPeriodo(novos.map((n) => ({ chave: n._id, titulo: n.titulo, src: imagemLeve(n.imagem, 640), srcSet: imagemSrcSet(n.imagem, [480, 960]), fundo: imagemLeve(n.imagem, 40) }))));
     });
   }, []);
 
@@ -95,8 +95,8 @@ export default function Home() {
         <div className="home-portfolio">
           {destaques.map((t) => (
             <Link to="/portfolio" key={t.chave} className="portfolio-card" aria-label={t.titulo}>
-              <span className="portfolio-img" style={{ display: 'block', '--fundo': `url("${t.src}")` }}>
-                <img src={t.src} alt="" width="1080" height="1080" loading="lazy" decoding="async" />
+              <span className="portfolio-img" style={{ display: 'block', '--fundo': `url("${t.fundo}")` }}>
+                <img src={t.src} srcSet={t.srcSet} sizes="(max-width: 800px) 46vw, 260px" alt="" width="1080" height="1080" loading="lazy" decoding="async" />
               </span>
             </Link>
           ))}

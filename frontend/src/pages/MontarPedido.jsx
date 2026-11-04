@@ -15,6 +15,8 @@ import {
   faixaPreco,
   formatBRL,
   imagemUrl,
+  imagemLeve,
+  imagemSrcSet,
   TAXA_ENTREGA_PRIORITARIA,
   TERMOS_URL,
 } from '../utils/pedido';
@@ -93,11 +95,11 @@ function CategoriaBloco({ categoria, selecoes, onToggle, onQtd, onObs, onCor, on
                   type="button"
                   className="vcard-foto"
                   aria-label={`Ver a imagem de ${v.nome} em tamanho grande`}
-                  onClick={() => setZoom(imagemUrl(img))}
+                  onClick={() => setZoom(imagemLeve(img, 1600))}
                 >
                   <span className="vcard-img">
-                    <span className="vcard-capa" style={{ '--fundo': `url("${imagemUrl(img)}")` }}>
-                      <img src={imagemUrl(img)} alt="" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                    <span className="vcard-capa" style={{ '--fundo': `url("${imagemLeve(img, 40)}")` }}>
+                      <img src={imagemLeve(img, 640)} srcSet={imagemSrcSet(img, [480, 960])} sizes="(max-width: 800px) 90vw, 280px" alt="" loading="lazy" decoding="async" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                     </span>
                   </span>
                 </button>
@@ -136,7 +138,7 @@ function CategoriaBloco({ categoria, selecoes, onToggle, onQtd, onObs, onCor, on
                       className={'pet-cor' + (sel?.cor === c.nome ? ' ativa' : '')}
                       onClick={() => onCor(categoria, v, c.nome)}
                     >
-                      {c.imagem ? <img src={imagemUrl(c.imagem)} alt="" /> : <span>{c.nome[0]}</span>}
+                      {c.imagem ? <img src={imagemLeve(c.imagem, 120)} alt="" loading="lazy" decoding="async" /> : <span>{c.nome[0]}</span>}
                     </button>
                   ))}
                 </div>
