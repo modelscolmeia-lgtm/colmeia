@@ -13,6 +13,7 @@ import {
 import { abrirTicket, postarNoTicket, avisarArtistas } from '../services/discord.js';
 import { contarFila, getLimiteFila } from '../services/fila.js';
 import { getSite } from '../services/site.js';
+import { podePedir } from '../services/booster.js';
 import Tipo from '../models/Tipo.js';
 import { garantirTiposPadrao } from '../services/tipos.js';
 
@@ -43,6 +44,15 @@ function sanitizarItem(item) {
   };
 }
 
+// GET /api/pedidos/elegibilidade — a pessoa logada pode fazer pedido? (regra "só boosters")
+router.get('/elegibilidade', autenticar, async (req, res) => {
+  try {
+    res.json(await podePedir(req.usuario));
+  } catch (err) {
+    res.status(500).json({ erro: 'Erro ao conferir o boost', detalhe: err.message });
+  }
+});
+
 // POST /api/pedidos — cliente cria um novo pedido
 router.post('/', autenticar, async (req, res) => {
   try {
@@ -51,6 +61,8 @@ router.post('/', autenticar, async (req, res) => {
       const site = await getSite();
       if (!site.aberto) return res.status(503).json({ erro: site.mensagem });
     }
+    const permissao = await podePedir(req.usuario);
+    if (!permissao.ok) return res.status(403).json({ erro: permissao.mensagem, codigo: permissao.codigo });
 
     const { tipo, versoes, itensAvulsos, itensPersonalizados, aceiteTermo, discordUsuario, entregaPrioritaria } = req.body;
 

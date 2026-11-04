@@ -9,6 +9,8 @@ const configSchema = new mongoose.Schema(
     // "Liga/desliga" do site para os clientes (admins continuam entrando).
     siteAberto: { type: Boolean, default: true },
     mensagemPausa: { type: String, default: '', maxlength: 300 },
+    // Pedidos só para quem dá boost no servidor do Discord (todo mundo continua vendo o site).
+    somenteBoosters: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

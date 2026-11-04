@@ -20,7 +20,7 @@ import Anuncio from '../models/Anuncio.js';
 import { sincronizar, apagarNoDiscord, webhookAtivo, MARCAR } from '../services/discordAnuncios.js';
 import { salvarImagem } from '../services/upload.js';
 import { notificarClienteOrcamento, notificarClienteConcluido } from '../services/email.js';
-import { postarNoTicket, enviarDM } from '../services/discord.js';
+import { postarNoTicket, enviarDM, listarBoosters } from '../services/discord.js';
 
 const router = Router();
 
@@ -167,6 +167,15 @@ router.delete('/anuncios/:id', async (req, res) => {
   }
 });
 
+// GET /api/admin/boosters — quantos boosts o servidor tem e quem são os boosters (nomes no Discord).
+router.get('/boosters', async (req, res) => {
+  try {
+    res.json(await listarBoosters());
+  } catch (err) {
+    res.status(500).json({ erro: 'Erro ao ler os boosters', detalhe: err.message });
+  }
+});
+
 // GET /api/admin/site — estado do site para os clientes (aberto ou pausado) e o aviso mostrado.
 router.get('/site', async (req, res) => {
   try {
@@ -179,11 +188,14 @@ router.get('/site', async (req, res) => {
 // PUT /api/admin/site — liga/desliga o site para os clientes ({ aberto, mensagem }).
 router.put('/site', async (req, res) => {
   try {
-    const { aberto, mensagem } = req.body;
+    const { aberto, mensagem, somenteBoosters } = req.body;
     if (aberto !== undefined && typeof aberto !== 'boolean') {
       return res.status(400).json({ erro: 'O campo "aberto" precisa ser verdadeiro ou falso.' });
     }
-    res.json(await setSite({ aberto, mensagem }));
+    if (somenteBoosters !== undefined && typeof somenteBoosters !== 'boolean') {
+      return res.status(400).json({ erro: 'O campo "somenteBoosters" precisa ser verdadeiro ou falso.' });
+    }
+    res.json(await setSite({ aberto, mensagem, somenteBoosters }));
   } catch (err) {
     res.status(500).json({ erro: 'Erro ao salvar o estado do site', detalhe: err.message });
   }

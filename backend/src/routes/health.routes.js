@@ -25,6 +25,7 @@ router.get('/config', async (req, res) => {
     cloudinary: CLOUDINARY_ATIVO,
     siteAberto: site.aberto,
     mensagemPausa: site.mensagem,
+    somenteBoosters: !!site.somenteBoosters, // pedidos só para boosters do servidor do Discord
     discordConvite: DISCORD_CONVITE_URL, // link do servidor (o site mostra o botão do Discord)
   });
 });

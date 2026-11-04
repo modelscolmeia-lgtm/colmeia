@@ -238,6 +238,67 @@ export async function enviarDM(discordId, mensagem) {
   }
 }
 
+// Confere se a pessoa dá boost no servidor. Devolve:
+//   'booster' | 'nao_booster' | 'fora_do_servidor' | 'indisponivel' (bot fora do ar ou erro do Discord).
+// Sem bot configurado (modo simulação) devolve 'simulacao', e quem chama deixa passar.
+export async function statusBooster(discordId) {
+  if (!DISCORD_ATIVO) return 'simulacao';
+  if (!pronto) return 'indisponivel';
+  try {
+    const guild = await client.guilds.fetch(DISCORD_GUILD_ID);
+    const membro = await guild.members.fetch(discordId);
+    return membro.premiumSince ? 'booster' : 'nao_booster';
+  } catch (e) {
+    if (e.code === 10007 || e.code === 10013) return 'fora_do_servidor'; // Unknown Member / Unknown User
+    console.error('Não foi possível conferir o boost:', e.message);
+    return 'indisponivel';
+  }
+}
+
+// Resumo dos boosters do servidor, para o painel do artista.
+// Os boosts (quantidade e nível) vêm sem permissão extra. A lista de nomes precisa do "Server Members
+// Intent" ligado no Portal do Desenvolvedor do Discord; sem ele devolve só o resumo e `listaDisponivel: false`.
+let cacheBoosters = null; // { quando, dados }
+export async function listarBoosters() {
+  if (!DISCORD_ATIVO) return { ativo: false };
+  if (!pronto) return { ativo: true, indisponivel: true };
+  if (cacheBoosters && Date.now() - cacheBoosters.quando < 120000) return cacheBoosters.dados;
+  try {
+    const guild = await client.guilds.fetch({ guild: DISCORD_GUILD_ID, force: true });
+    const dados = {
+      ativo: true,
+      servidor: guild.name,
+      boosts: guild.premiumSubscriptionCount || 0,
+      nivel: guild.premiumTier || 0,
+      listaDisponivel: true,
+      boosters: [],
+    };
+    try {
+      let depois;
+      for (let pagina = 0; pagina < 20; pagina++) {
+        const lote = await guild.members.list({ limit: 1000, after: depois, cache: false });
+        if (!lote.size) break;
+        for (const m of lote.values()) {
+          if (m.premiumSinceTimestamp) {
+            dados.boosters.push({ id: m.id, nome: m.displayName, usuario: m.user.username, desde: new Date(m.premiumSinceTimestamp).toISOString() });
+          }
+        }
+        if (lote.size < 1000) break;
+        depois = lote.lastKey();
+      }
+      dados.boosters.sort((a, b) => a.desde.localeCompare(b.desde));
+    } catch (e) {
+      console.error('Lista de boosters indisponível (ligue o Server Members Intent no Portal do Discord):', e.message);
+      dados.listaDisponivel = false;
+    }
+    cacheBoosters = { quando: Date.now(), dados };
+    return dados;
+  } catch (e) {
+    console.error('Não foi possível ler os boosters:', e.message);
+    return { ativo: true, indisponivel: true };
+  }
+}
+
 // Avisa todos os artistas (DISCORD_ADMIN_IDS) por DM.
 export async function avisarArtistas(mensagem) {
   for (const id of ADMIN_IDS) await enviarDM(id, mensagem);
