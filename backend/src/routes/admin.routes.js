@@ -407,18 +407,36 @@ router.put('/pedidos/:id/orcar', async (req, res) => {
   }
 });
 
-// DELETE /api/admin/pedidos/:id — exclui um pedido morto (recusado ou cancelado).
+// Apaga pedidos de vez (qualquer etapa). Se algum estava na fila ou em produção, abre a vaga:
+// o próximo da fila é promovido. O canal do ticket no Discord não é apagado.
+async function apagarPedidos(ids) {
+  const alvos = await Pedido.find({ _id: { $in: ids } }).select('status').lean();
+  if (!alvos.length) return 0;
+  await Pedido.deleteMany({ _id: { $in: alvos.map((p) => p._id) } });
+  if (alvos.some((p) => ['fila_producao', 'em_producao'].includes(p.status))) await promoverProximo();
+  return alvos.length;
+}
+
+// DELETE /api/admin/pedidos/:id — apaga um pedido, em qualquer etapa.
 router.delete('/pedidos/:id', async (req, res) => {
   try {
-    const pedido = await Pedido.findById(req.params.id).select('status');
-    if (!pedido) return res.status(404).json({ erro: 'Pedido não encontrado' });
-    if (!['recusado_cliente', 'cancelado', 'expirado'].includes(pedido.status)) {
-      return res.status(400).json({ erro: 'Só dá para excluir pedidos recusados, cancelados ou expirados' });
-    }
-    await Pedido.deleteOne({ _id: pedido._id });
-    res.json({ ok: true });
+    const n = await apagarPedidos([req.params.id]);
+    if (!n) return res.status(404).json({ erro: 'Pedido não encontrado' });
+    res.json({ ok: true, apagados: n });
   } catch (err) {
-    res.status(500).json({ erro: 'Erro ao excluir pedido', detalhe: err.message });
+    res.status(500).json({ erro: 'Erro ao apagar o pedido', detalhe: err.message });
+  }
+});
+
+// POST /api/admin/pedidos/apagar — apaga vários de uma vez ({ ids: [...] }, até 200).
+router.post('/pedidos/apagar', async (req, res) => {
+  try {
+    const ids = Array.isArray(req.body.ids) ? [...new Set(req.body.ids.filter((x) => typeof x === 'string' && /^[a-f0-9]{24}$/i.test(x)))] : [];
+    if (!ids.length) return res.status(400).json({ erro: 'Nenhum pedido selecionado.' });
+    if (ids.length > 200) return res.status(400).json({ erro: 'Selecione no máximo 200 pedidos por vez.' });
+    res.json({ ok: true, apagados: await apagarPedidos(ids) });
+  } catch (err) {
+    res.status(500).json({ erro: 'Erro ao apagar os pedidos', detalhe: err.message });
   }
 });
 
