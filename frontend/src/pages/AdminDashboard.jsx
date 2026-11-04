@@ -232,6 +232,12 @@ export default function AdminDashboard() {
   const { confirmar } = useDialog();
   const [aba, setAba] = useState('pendente_aprovacao');
   const [busca, setBusca] = useState('');
+  // filtros extras e seleção para apagar vários
+  const [fTipo, setFTipo] = useState('');
+  const [fPeriodo, setFPeriodo] = useState('');
+  const [fStatus, setFStatus] = useState('');
+  const [fPrioritaria, setFPrioritaria] = useState(false);
+  const [marcados, setMarcados] = useState(() => new Set());
   const [pedidos, setPedidos] = useState([]);
   const [contagem, setContagem] = useState(null); // null = ainda não carregou (ou backend antigo)
   const [carregando, setCarregando] = useState(true);
@@ -379,6 +385,8 @@ export default function AdminDashboard() {
   useEffect(() => {
     setEditando(null);
     setEditandoItens(null);
+    setMarcados(new Set());
+    setFStatus('');
     carregar();
   }, [carregar]);
 
@@ -437,16 +445,34 @@ export default function AdminDashboard() {
     }
   }
 
-  async function excluirPedido(id) {
+  // Aviso extra conforme a etapa: apagar um pedido já pago ou em produção é mais sério.
+  function avisoApagar(lista) {
+    const pagos = lista.filter((p) => ['fila_producao', 'em_producao', 'concluido'].includes(p.status)).length;
+    const aguardando = lista.filter((p) => p.status === 'aguardando_pagamento').length;
+    let aviso = '';
+    if (pagos) aviso += `\n\nAtenção: ${pagos === 1 ? 'este pedido já foi pago' : `${pagos} pedidos já foram pagos`} (fila, produção ou concluído).`;
+    if (aguardando) aviso += `\n\n${aguardando === 1 ? 'Este pedido está' : `${aguardando} pedidos estão`} aguardando pagamento.`;
+    return aviso + '\n\nO canal do ticket no Discord não é apagado.';
+  }
+
+  async function apagarPedidos(lista) {
+    if (!lista.length) return;
+    const unico = lista.length === 1;
     if (!(await confirmar({
-      titulo: 'Excluir pedido',
-      mensagem: 'Excluir este pedido de vez? Não dá pra desfazer.',
-      okLabel: 'Excluir',
+      titulo: unico ? 'Apagar pedido' : `Apagar ${lista.length} pedidos`,
+      mensagem: (unico
+        ? `Apagar o pedido${lista[0].numero ? ` #${lista[0].numero}` : ''} de ${lista[0].cliente?.nome || 'cliente'} de vez? Não dá para desfazer.`
+        : `Apagar ${lista.length} pedidos de vez? Não dá para desfazer.`) + avisoApagar(lista),
+      okLabel: unico ? 'Apagar' : `Apagar ${lista.length}`,
+      cancelLabel: 'Voltar',
       perigo: true,
     }))) return;
     setAcao(true);
+    setErro('');
     try {
-      await api.delete(`/admin/pedidos/${id}`, token);
+      if (unico) await api.delete(`/admin/pedidos/${lista[0]._id}`, token);
+      else await api.post('/admin/pedidos/apagar', { ids: lista.map((p) => p._id) }, token);
+      setMarcados(new Set());
       await carregar();
     } catch (e) {
       setErro(e.message);
@@ -454,6 +480,45 @@ export default function AdminDashboard() {
       setAcao(false);
     }
   }
+
+  // Pedidos da aba depois da busca e dos filtros
+  const agora = Date.now();
+  const visiveis = pedidos.filter((p) => {
+    const q = normaliza(busca.trim());
+    if (q) {
+      const nomes = [...(p.versoes || []).map((v) => v.nome), p.discordUsuario].filter(Boolean).join(' ');
+      if (!normaliza(`${p.numero ?? ''} ${p.cliente?.nome ?? ''} ${p.cliente?.email ?? ''} ${nomes}`).includes(q)) return false;
+    }
+    if (fTipo && p.tipo !== fTipo) return false;
+    if (fStatus && p.status !== fStatus) return false;
+    if (fPrioritaria && !p.entregaPrioritaria) return false;
+    if (fPeriodo) {
+      const dias = (agora - new Date(p.createdAt).getTime()) / 86400000;
+      if (fPeriodo === '7' && dias > 7) return false;
+      if (fPeriodo === '30' && dias > 30) return false;
+      if (fPeriodo === 'antigos' && dias <= 30) return false;
+    }
+    return true;
+  });
+  const filtrando = !!(busca.trim() || fTipo || fStatus || fPeriodo || fPrioritaria);
+  const idsVisiveis = visiveis.map((p) => p._id);
+  const todosMarcados = idsVisiveis.length > 0 && idsVisiveis.every((id) => marcados.has(id));
+  const selecionados = pedidos.filter((p) => marcados.has(p._id) && idsVisiveis.includes(p._id));
+  const alternarMarca = (id) =>
+    setMarcados((m) => {
+      const n = new Set(m);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
+  const marcarTodos = () => setMarcados(todosMarcados ? new Set() : new Set(idsVisiveis));
+  const limparFiltros = () => {
+    setBusca('');
+    setFTipo('');
+    setFStatus('');
+    setFPeriodo('');
+    setFPrioritaria(false);
+  };
 
   return (
     <Layout>
@@ -604,33 +669,77 @@ export default function AdminDashboard() {
       </div>
 
       {pedidos.length > 0 && (
-        <input
-          className="busca-input" placeholder="Buscar por cliente, e-mail ou número..."
-          value={busca}
-          onChange={(e) => setBusca(e.target.value)}
-          style={{ marginBottom: 12 }}
-        />
+        <div className="filtros-pedidos">
+          <input
+            className="busca-input" placeholder="Buscar por cliente, e-mail, número ou personagem..."
+            aria-label="Buscar pedidos"
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+          />
+          <div className="filtros-linha">
+            <select aria-label="Tipo de pedido" value={fTipo} onChange={(e) => setFTipo(e.target.value)}>
+              <option value="">Todos os tipos</option>
+              <option value="model">Model</option>
+              <option value="item_avulso">Item avulso</option>
+            </select>
+            <select aria-label="Período" value={fPeriodo} onChange={(e) => setFPeriodo(e.target.value)}>
+              <option value="">Qualquer data</option>
+              <option value="7">Últimos 7 dias</option>
+              <option value="30">Últimos 30 dias</option>
+              <option value="antigos">Mais de 30 dias</option>
+            </select>
+            {aba.includes(',') && (
+              <select aria-label="Situação" value={fStatus} onChange={(e) => setFStatus(e.target.value)}>
+                <option value="">Todas as situações</option>
+                <option value="recusado_cliente">Recusados</option>
+                <option value="cancelado">Cancelados</option>
+                <option value="expirado">Expirados</option>
+              </select>
+            )}
+            <label className="check-linha filtro-check">
+              <input type="checkbox" checked={fPrioritaria} onChange={(e) => setFPrioritaria(e.target.checked)} />
+              Só prioritárias
+            </label>
+            {filtrando && <button className="secundario pequeno" onClick={limparFiltros}>Limpar filtros</button>}
+          </div>
+          <div className="selecao-barra">
+            <label className="check-linha">
+              <input type="checkbox" checked={todosMarcados} onChange={marcarTodos} disabled={!idsVisiveis.length} />
+              {todosMarcados ? 'Desmarcar todos' : 'Selecionar todos'}
+              <span className="muted"> ({visiveis.length}{filtrando ? ` de ${pedidos.length}` : ''})</span>
+            </label>
+            {selecionados.length > 0 && (
+              <>
+                <span className="muted">{selecionados.length} selecionado{selecionados.length > 1 ? 's' : ''}</span>
+                <button className="perigo pequeno" onClick={() => apagarPedidos(selecionados)} disabled={acao}>
+                  Apagar selecionados
+                </button>
+              </>
+            )}
+          </div>
+        </div>
       )}
 
       {carregando && <p className="muted">Carregando...</p>}
       {erro && <p className="erro">{erro}</p>}
+      {!carregando && pedidos.length > 0 && !visiveis.length && (
+        <EstadoVazio titulo="Nenhum pedido com esses filtros" texto="Tire ou mude os filtros para ver os pedidos desta etapa." />
+      )}
       {!carregando && !pedidos.length && (
         <EstadoVazio titulo="Nenhum pedido aqui" texto="Quando chegar um pedido nesta etapa, ele aparece nesta lista." />
       )}
 
       <div className="stack">
-        {pedidos
-          .filter((p) => {
-            const q = normaliza(busca.trim());
-            if (!q) return true;
-            return normaliza(`${p.numero ?? ''} ${p.cliente?.nome ?? ''} ${p.cliente?.email ?? ''}`).includes(q);
-          })
+        {visiveis
           .map((p) => {
           const info = STATUS_INFO[p.status] || {};
           return (
-            <div className="card" key={p._id}>
+            <div className={'card' + (marcados.has(p._id) ? ' pedido-marcado' : '')} key={p._id}>
               <div className="between">
                 <div>
+                  <label className="marca-pedido">
+                    <input type="checkbox" checked={marcados.has(p._id)} onChange={() => alternarMarca(p._id)} aria-label={`Selecionar o pedido ${p.numero ?? ''} de ${p.cliente?.nome ?? ''}`} />
+                  </label>
                   {p.numero ? <span className="preco" style={{ marginRight: 6 }}>#{p.numero}</span> : null}
                   <strong>{p.cliente?.nome}</strong>{' '}
                   <span className="muted">· {p.cliente?.email}</span>
@@ -718,12 +827,9 @@ export default function AdminDashboard() {
                 <div className="btn-row" style={{ marginTop: 12 }}>
                   {p.status === 'recusado_cliente' && editando !== p._id && (
                     <span className="muted" style={{ fontSize: 16 }}>
-                      O cliente recusou. Você pode reorçar acima ou excluir o pedido.
+                      O cliente recusou. Você pode reorçar acima ou apagar o pedido.
                     </span>
                   )}
-                  <button className="perigo pequeno" onClick={() => excluirPedido(p._id)} disabled={acao}>
-                    Excluir pedido
-                  </button>
                 </div>
               )}
 
@@ -735,6 +841,9 @@ export default function AdminDashboard() {
 
               <div className="row" style={{ marginTop: 10, gap: 14 }}>
                 <Link to={`/pedido/${p._id}`} className="muted link-toque" style={{ fontSize: 16 }}>Ver detalhes →</Link>
+                <button className="perigo pequeno" onClick={() => apagarPedidos([p])} disabled={acao} style={{ marginLeft: 'auto' }}>
+                  Apagar pedido
+                </button>
                 {p.discordCanalUrl && (
                   <a href={p.discordCanalUrl} target="_blank" rel="noopener noreferrer" className="link-toque" style={{ fontSize: 16 }}>
                     <Icone nome="balao" /> Abrir ticket no Discord

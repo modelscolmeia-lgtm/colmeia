@@ -418,8 +418,7 @@ td:last-child .muted, td:last-child .preco { white-space: nowrap; }
 
 /* Anúncios */
 .sucesso-msg { color: var(--verde); font-weight: 600; }
-.check-linha { display: flex; align-items: center; gap: 10px; min-height: 44px; }
-.check-linha input { width: auto; }
+.check-linha { display: flex; flex-direction: row; align-items: center; gap: 10px; min-height: 44px; font-weight: 600; }
 .anuncio.fixado { border-color: rgba(255, 184, 0, 0.5); }
 .anuncio.importante { border-color: rgba(224, 138, 46, 0.55); }
 .anuncio.urgente { border-color: rgba(255, 107, 132, 0.6); }
@@ -453,3 +452,12 @@ td:last-child .muted, td:last-child .preco { white-space: nowrap; }
 
 .lista-boosters { margin: 8px 0 12px; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; max-height: 320px; overflow-y: auto; }
 .lista-boosters li { padding: 8px 12px; background: var(--sup-2); border: 1px solid var(--borda); border-radius: var(--raio-p); overflow-wrap: anywhere; }
+
+/* Painel: filtros e seleção de pedidos */
+.filtros-pedidos { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+.filtros-linha { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.filtros-linha select { width: auto; min-width: 150px; }
+.filtro-check { padding: 0 4px; }
+.selecao-barra { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 8px 12px; background: var(--sup); border: 1px solid var(--borda); border-radius: var(--raio-p); }
+.marca-pedido { display: inline-flex; align-items: center; min-width: 44px; min-height: 44px; margin: -8px 4px -8px -10px; cursor: pointer; }
+.card.pedido-marcado { border-color: var(--mel); box-shadow: 0 0 0 1px var(--mel); }
