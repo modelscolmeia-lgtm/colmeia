@@ -58,7 +58,7 @@ export default function Home() {
           </p>
           {somenteBoosters && (
             <p className="aviso-boost">
-              No momento, os pedidos são só para quem dá <strong>boost</strong> no servidor do Discord. O site é aberto para todos.
+              No momento, os pedidos são só para quem dá <strong>boost</strong> no servidor do Discord. O site é aberto para todos. Já dá boost? Entre com o Discord e faça seu pedido.
             </p>
           )}
           <div className="btn-row">
