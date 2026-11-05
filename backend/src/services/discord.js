@@ -246,7 +246,10 @@ export async function statusBooster(discordId) {
   if (!pronto) return 'indisponivel';
   try {
     const guild = await client.guilds.fetch(DISCORD_GUILD_ID);
-    const membro = await guild.members.fetch(discordId);
+    // force: true busca no Discord de novo. Sem isso o bot reaproveita o membro guardado na memória, que
+    // não se atualiza sozinho (o bot não recebe avisos de mudança de membros): quem já tinha sido conferido
+    // antes de dar boost continuaria aparecendo como "não booster".
+    const membro = await guild.members.fetch({ user: discordId, force: true });
     return membro.premiumSince ? 'booster' : 'nao_booster';
   } catch (e) {
     if (e.code === 10007 || e.code === 10013) return 'fora_do_servidor'; // Unknown Member / Unknown User
