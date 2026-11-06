@@ -464,3 +464,5 @@ td:last-child .muted, td:last-child .preco { white-space: nowrap; }
 
 /* Desempenho: cards fora da tela não são desenhados até chegarem perto */
 .portfolio-card, .vcard { content-visibility: auto; contain-intrinsic-size: auto 420px; }
+
+.linha-lib { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }

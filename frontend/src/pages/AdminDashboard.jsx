@@ -329,6 +329,59 @@ export default function AdminDashboard() {
       .finally(() => setCarregandoBoosters(false));
   }
 
+  // ---- pessoas liberadas para pedir sem dar boost ----
+  const [liberados, setLiberados] = useState(null);
+  const [buscaLib, setBuscaLib] = useState('');
+  const [achados, setAchados] = useState([]);
+  const [idLib, setIdLib] = useState('');
+  const [nomeLib, setNomeLib] = useState('');
+  const [msgLib, setMsgLib] = useState('');
+  const carregarLiberados = useCallback(() => {
+    api.get('/admin/liberados', token).then(setLiberados).catch(() => setLiberados([]));
+  }, [token]);
+
+  useEffect(() => {
+    const q = buscaLib.trim();
+    if (q.length < 2) {
+      setAchados([]);
+      return undefined;
+    }
+    const t = setTimeout(() => {
+      api.get(`/admin/liberados/buscar?q=${encodeURIComponent(q)}`, token).then(setAchados).catch(() => setAchados([]));
+    }, 300);
+    return () => clearTimeout(t);
+  }, [buscaLib, token]);
+
+  async function liberar(discordId, nome) {
+    setMsgLib('');
+    try {
+      await api.post('/admin/liberados', { discordId, nome }, token);
+      setBuscaLib('');
+      setAchados([]);
+      setIdLib('');
+      setNomeLib('');
+      carregarLiberados();
+    } catch (e) {
+      setMsgLib(e.message);
+    }
+  }
+
+  async function tirarLiberacao(l) {
+    if (!(await confirmar({
+      titulo: 'Tirar liberação',
+      mensagem: `${l.nome || l.discordId} deixa de poder fazer pedido sem boost. Pedidos que já existem não são afetados.`,
+      okLabel: 'Tirar',
+      cancelLabel: 'Voltar',
+      perigo: true,
+    }))) return;
+    try {
+      await api.delete(`/admin/liberados/${l._id}`, token);
+      carregarLiberados();
+    } catch (e) {
+      setMsgLib(e.message);
+    }
+  }
+
   async function alternarBoosters() {
     const ligar = !site?.somenteBoosters;
     const ok = await confirmar({
@@ -600,6 +653,57 @@ export default function AdminDashboard() {
               <button className="secundario pequeno" onClick={carregarBoosters} disabled={carregandoBoosters}>Atualizar</button>
             </>
           )}
+        </details>
+      )}
+      {site && (
+        <details className="card limite-card" onToggle={(e) => e.currentTarget.open && carregarLiberados()}>
+          <summary>
+            Pessoas liberadas para pedir sem boost
+            {liberados && <span className="muted"> {liberados.length}</span>}
+          </summary>
+          <p className="muted">
+            Quem estiver aqui consegue fazer pedido mesmo sem dar boost, enquanto a regra "só boosters" estiver ligada.
+          </p>
+
+          <label htmlFor="busca-lib">
+            Procurar quem já entrou no site
+            <input id="busca-lib" placeholder="Digite o nome no Discord..." value={buscaLib} onChange={(e) => setBuscaLib(e.target.value)} autoComplete="off" />
+          </label>
+          {achados.length > 0 && (
+            <ul className="lista-boosters">
+              {achados.map((a) => (
+                <li key={a.discordId} className="linha-lib">
+                  <span><strong>{a.nome}</strong>{a.usuario ? <span className="muted"> @{a.usuario}</span> : null}</span>
+                  <button className="pequeno" onClick={() => liberar(a.discordId, a.nome)}>Liberar</button>
+                </li>
+              ))}
+            </ul>
+          )}
+          {buscaLib.trim().length >= 2 && achados.length === 0 && (
+            <p className="muted">Ninguém com esse nome entrou no site ainda. Você pode liberar pelo ID do Discord, logo abaixo.</p>
+          )}
+
+          <div className="filtros-linha" style={{ marginTop: 10 }}>
+            <input style={{ flex: '1 1 200px' }} aria-label="ID do Discord" inputMode="numeric" placeholder="ID do Discord (só números)" value={idLib} onChange={(e) => setIdLib(e.target.value.replace(/\D/g, ''))} maxLength={20} />
+            <input style={{ flex: '1 1 160px' }} aria-label="Nome (opcional)" placeholder="Nome (para você lembrar)" value={nomeLib} onChange={(e) => setNomeLib(e.target.value)} maxLength={80} />
+            <button className="pequeno" onClick={() => liberar(idLib, nomeLib)} disabled={idLib.length < 17}>Liberar pelo ID</button>
+          </div>
+          <p className="muted" style={{ fontSize: 14 }}>
+            Para copiar o ID: no Discord, ative o Modo Desenvolvedor (Configurações &gt; Avançado), clique com o botão direito na pessoa e escolha "Copiar ID do usuário".
+          </p>
+          {msgLib && <p className="erro">{msgLib}</p>}
+
+          {liberados && liberados.length > 0 && (
+            <ul className="lista-boosters">
+              {liberados.map((l) => (
+                <li key={l._id} className="linha-lib">
+                  <span><strong>{l.nome || 'Sem nome'}</strong><span className="muted"> · {l.discordId}</span></span>
+                  <button className="perigo pequeno" onClick={() => tirarLiberacao(l)}>Tirar</button>
+                </li>
+              ))}
+            </ul>
+          )}
+          {liberados && liberados.length === 0 && <p className="muted">Ninguém liberado por enquanto.</p>}
         </details>
       )}
       {msgSite && msgSite !== 'salvo' && <p className="erro">{msgSite}</p>}
