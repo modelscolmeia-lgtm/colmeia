@@ -1,6 +1,7 @@
 import User from '../models/User.js';
 import { getSite } from './site.js';
 import { statusBooster } from './discord.js';
+import PedidoLiberado from '../models/PedidoLiberado.js';
 
 const MENSAGENS = {
   sem_discord: 'Para fazer um pedido, entre no site com o seu Discord.',
@@ -18,6 +19,9 @@ export async function podePedir({ id, role }) {
 
   const user = await User.findById(id).select('discordId').lean();
   if (!user?.discordId) return { ok: false, somenteBoosters, codigo: 'sem_discord', mensagem: MENSAGENS.sem_discord };
+
+  // liberada pelo artista: pede mesmo sem boost (e sem precisar falar com o Discord)
+  if (await PedidoLiberado.exists({ discordId: user.discordId })) return { ok: true, somenteBoosters, liberado: true };
 
   const estado = await statusBooster(user.discordId);
   if (estado === 'booster' || estado === 'simulacao') return { ok: true, somenteBoosters };

@@ -17,6 +17,7 @@ import { getSite, setSite } from '../services/site.js';
 import Portfolio from '../models/Portfolio.js';
 import PortfolioOculto from '../models/PortfolioOculto.js';
 import Anuncio from '../models/Anuncio.js';
+import PedidoLiberado from '../models/PedidoLiberado.js';
 import { sincronizar, apagarNoDiscord, webhookAtivo, MARCAR } from '../services/discordAnuncios.js';
 import { salvarImagem } from '../services/upload.js';
 import { notificarClienteOrcamento, notificarClienteConcluido } from '../services/email.js';
@@ -164,6 +165,62 @@ router.delete('/anuncios/:id', async (req, res) => {
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ erro: 'Erro ao apagar o anúncio', detalhe: err.message });
+  }
+});
+
+// ---- Pessoas liberadas para pedir sem dar boost ----
+// GET /api/admin/liberados — a lista.
+router.get('/liberados', async (req, res) => {
+  try {
+    res.json(await PedidoLiberado.find().sort({ createdAt: -1 }).lean());
+  } catch (err) {
+    res.status(500).json({ erro: 'Erro ao listar as pessoas liberadas', detalhe: err.message });
+  }
+});
+
+// GET /api/admin/liberados/buscar?q=nome — quem já entrou no site com o Discord (para o artista escolher).
+router.get('/liberados/buscar', async (req, res) => {
+  try {
+    const q = String(req.query.q || '').trim().slice(0, 40);
+    if (q.length < 2) return res.json([]);
+    const rx = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+    const usuarios = await User.find({ discordId: { $exists: true, $ne: null }, $or: [{ nome: rx }, { discordUsername: rx }] })
+      .select('nome discordId discordUsername')
+      .limit(8)
+      .lean();
+    res.json(usuarios.map((u) => ({ discordId: u.discordId, nome: u.nome, usuario: u.discordUsername || '' })));
+  } catch (err) {
+    res.status(500).json({ erro: 'Erro ao buscar pessoas', detalhe: err.message });
+  }
+});
+
+// POST /api/admin/liberados — libera alguém ({ discordId, nome? }). O ID é o número do perfil no Discord.
+router.post('/liberados', async (req, res) => {
+  try {
+    const discordId = String(req.body.discordId || '').trim();
+    const nome = String(req.body.nome || '').trim().slice(0, 80);
+    if (!/^\d{17,20}$/.test(discordId)) {
+      return res.status(400).json({ erro: 'O ID do Discord é um número de 17 a 20 dígitos.' });
+    }
+    const item = await PedidoLiberado.findOneAndUpdate(
+      { discordId },
+      { discordId, ...(nome ? { nome } : {}) },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    ).lean();
+    res.status(201).json(item);
+  } catch (err) {
+    res.status(500).json({ erro: 'Erro ao liberar a pessoa', detalhe: err.message });
+  }
+});
+
+// DELETE /api/admin/liberados/:id — tira a liberação.
+router.delete('/liberados/:id', async (req, res) => {
+  try {
+    const removido = await PedidoLiberado.findByIdAndDelete(req.params.id);
+    if (!removido) return res.status(404).json({ erro: 'Pessoa não encontrada' });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ erro: 'Erro ao tirar a liberação', detalhe: err.message });
   }
 });
 
