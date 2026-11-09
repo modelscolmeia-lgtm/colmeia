@@ -466,3 +466,5 @@ td:last-child .muted, td:last-child .preco { white-space: nowrap; }
 .portfolio-card, .vcard { content-visibility: auto; contain-intrinsic-size: auto 420px; }
 
 .linha-lib { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+
+.aviso-boost-pagina { margin-bottom: 16px; }

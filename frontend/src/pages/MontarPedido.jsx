@@ -6,7 +6,6 @@ import Modal from '../components/Modal';
 import PassosCategorias from '../components/PassosCategorias';
 import Lightbox from '../components/Lightbox';
 import Cabecalho from '../components/Cabecalho';
-import EstadoVazio from '../components/EstadoVazio';
 import { useAuth } from '../context/AuthContext';
 import { useSite } from '../context/SiteContext';
 import { useDialog } from '../context/DialogProvider';
@@ -393,6 +392,7 @@ export default function MontarPedido() {
 
   // Botão principal: valida e abre o modal de termos.
   function revisarEEnviar() {
+    if (exigeBoost && !permissao?.ok) return;
     const err = validarItens();
     if (err) return setErro(err);
     setErro('');
@@ -413,30 +413,10 @@ export default function MontarPedido() {
     }
   }
 
-  if (exigeBoost && !permissao?.ok) {
-    return (
-      <Layout largura="container-narrow">
-        <Cabecalho titulo="Fazer pedido" subtitulo="Pedidos exclusivos para quem dá boost no servidor do Discord." />
-        {permissao == null ? (
-          <p className="muted">Conferindo o seu boost...</p>
-        ) : (
-          <>
-            <EstadoVazio titulo="Pedidos só para boosters" texto={permissao.mensagem} />
-            <div className="btn-row" style={{ justifyContent: 'center', marginTop: 16 }}>
-              {discordConvite && (
-                <a href={discordConvite} target="_blank" rel="noopener noreferrer">
-                  <button>Entrar no servidor do Discord</button>
-                </a>
-              )}
-              <button className="secundario" onClick={conferirBoost} disabled={conferindo}>
-                {conferindo ? 'Conferindo...' : 'Já dei boost, conferir de novo'}
-              </button>
-            </div>
-          </>
-        )}
-      </Layout>
-    );
-  }
+  // Regra "só boosters": quem não pode pedir ainda vê o catálogo e monta à vontade, só não consegue enviar.
+  const semPermissao = exigeBoost && permissao != null && !permissao.ok;
+  const conferindoBoost = exigeBoost && permissao == null;
+  const envioBloqueado = exigeBoost && !permissao?.ok;
 
   if (carregando) {
     return (
@@ -451,6 +431,24 @@ export default function MontarPedido() {
   return (
     <Layout>
       <Cabecalho titulo="Fazer pedido" subtitulo="Escolha as partes do seu personagem, categoria por categoria. O artista confere tudo e envia o orçamento." />
+
+      {semPermissao && (
+        <div className="aviso aviso-boost-pagina" role="status">
+          <strong>Pedidos só para boosters.</strong> {permissao.mensagem} Você pode ver o catálogo e os preços à vontade,
+          mas só consegue enviar o pedido depois de liberado.
+          <div className="btn-row" style={{ marginTop: 10 }}>
+            {discordConvite && (
+              <a href={discordConvite} target="_blank" rel="noopener noreferrer">
+                <button className="pequeno">Entrar no servidor do Discord</button>
+              </a>
+            )}
+            <button className="secundario pequeno" onClick={conferirBoost} disabled={conferindo}>
+              {conferindo ? 'Conferindo...' : 'Já dei boost, conferir de novo'}
+            </button>
+          </div>
+        </div>
+      )}
+      {conferindoBoost && <p className="muted">Conferindo o seu boost...</p>}
 
       <div className="btn-row" style={{ marginBottom: 16 }}>
         <button
@@ -598,10 +596,13 @@ export default function MontarPedido() {
             </div>
             <button
               onClick={revisarEEnviar}
-              disabled={fila?.cheia}
-              title={fila?.cheia ? 'A fila está cheia no momento' : undefined}
+              disabled={fila?.cheia || envioBloqueado}
+              title={
+                envioBloqueado ? 'Pedidos só para boosters do servidor do Discord'
+                  : fila?.cheia ? 'A fila está cheia no momento' : undefined
+              }
             >
-              Revisar e enviar
+              {semPermissao ? 'Só para boosters' : conferindoBoost ? 'Conferindo...' : 'Revisar e enviar'}
             </button>
         </div>
       </div>
