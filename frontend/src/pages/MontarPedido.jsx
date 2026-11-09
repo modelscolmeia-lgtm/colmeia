@@ -155,7 +155,7 @@ function CategoriaBloco({ categoria, selecoes, onToggle, onQtd, onObs, onCor, on
 }
 
 export default function MontarPedido() {
-  const { token, usuario } = useAuth();
+  const { token, usuario, modoTeste, boosterTeste } = useAuth();
   const { somenteBoosters, discordConvite } = useSite();
   const { confirmar } = useDialog();
   const navigate = useNavigate();
@@ -164,13 +164,18 @@ export default function MontarPedido() {
   const [permissao, setPermissao] = useState(null); // { ok, mensagem, codigo } | null enquanto confere
   const [conferindo, setConferindo] = useState(false);
   const conferirBoost = useCallback(() => {
+    if (modoTeste) {
+      // modo teste do artista: o boost é o que ele escolheu na faixa de cima, sem consultar o Discord
+      setPermissao(boosterTeste ? { ok: true } : { ok: false, codigo: 'nao_booster', mensagem: 'No momento, os pedidos são só para quem dá boost no servidor do Discord.' });
+      return;
+    }
     setConferindo(true);
     api
       .get('/pedidos/elegibilidade', token)
       .then(setPermissao)
       .catch(() => setPermissao({ ok: false, mensagem: 'Não consegui conferir o seu boost agora. Tente de novo em instantes.', codigo: 'indisponivel' }))
       .finally(() => setConferindo(false));
-  }, [token]);
+  }, [token, modoTeste, boosterTeste]);
   const exigeBoost = somenteBoosters && usuario?.role !== 'admin';
   useEffect(() => {
     if (exigeBoost) conferirBoost();
@@ -401,6 +406,17 @@ export default function MontarPedido() {
 
   async function enviar() {
     if (!aceite) return;
+    if (modoTeste) {
+      // nada é enviado de verdade no modo teste
+      setModalAberto(false);
+      await confirmar({
+        titulo: 'Modo teste',
+        mensagem: 'Pronto: é assim que o pedido seria enviado. Como você está no modo teste, ele NÃO foi enviado e nada foi salvo.',
+        okLabel: 'Entendi',
+        cancelLabel: 'Fechar',
+      });
+      return;
+    }
     setErro('');
     setEnviando(true);
     try {

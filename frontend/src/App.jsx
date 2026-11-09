@@ -18,6 +18,7 @@ import Fila from './pages/Fila';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminCatalogo from './pages/AdminCatalogo';
 import AdminCupons from './pages/AdminCupons';
+import FaixaModoTeste from './components/FaixaModoTeste';
 
 // Site pausado: clientes veem a tela de pausa (o login continua livre para o artista entrar).
 // O admin segue usando o site normalmente, com uma faixa lembrando que está pausado.
@@ -28,9 +29,17 @@ function PortaoSite({ children }) {
   const admin = usuario?.role === 'admin';
   const livre = ['/login', '/cadastro', '/entrar-discord'].includes(pathname);
 
-  if (!aberto && !admin && !livre) return <Pausa />;
+  if (!aberto && !admin && !livre) {
+    return (
+      <>
+        <FaixaModoTeste />
+        <Pausa />
+      </>
+    );
+  }
   return (
     <>
+      <FaixaModoTeste />
       {!aberto && admin && (
         <div className="faixa-pausa" role="status">
           O site está <strong>pausado</strong> para os clientes. <Link to="/admin">Abrir o painel para ligar</Link>

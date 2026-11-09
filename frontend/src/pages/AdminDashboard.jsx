@@ -3,7 +3,7 @@ import Icone from '../components/Icone';
 import EstadoVazio from '../components/EstadoVazio';
 import Cabecalho from '../components/Cabecalho';
 import { useSite } from '../context/SiteContext';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import AdminEditarItens from '../components/AdminEditarItens';
 import ItemImagem from '../components/ItemImagem';
@@ -228,7 +228,8 @@ function ResumoItens({ pedido }) {
 }
 
 export default function AdminDashboard() {
-  const { token } = useAuth();
+  const { token, ligarModoTeste } = useAuth();
+  const navigate = useNavigate();
   const { confirmar } = useDialog();
   const [aba, setAba] = useState('pendente_aprovacao');
   const [busca, setBusca] = useState('');
@@ -707,6 +708,20 @@ export default function AdminDashboard() {
         </details>
       )}
       {msgSite && msgSite !== 'salvo' && <p className="erro">{msgSite}</p>}
+
+      <div className="site-status aberto">
+        <div>
+          <strong>Modo teste: ver como cliente</strong>
+          <span className="muted">
+            Veja o site como a "Abelha Operária", uma cliente de mentira. Você escolhe se ela é booster ou não. Nada é salvo
+            e nenhum pedido é enviado de verdade.
+          </span>
+        </div>
+        <div className="btn-row">
+          <button className="secundario" onClick={() => { ligarModoTeste(false); navigate('/'); }}>Ver como não booster</button>
+          <button onClick={() => { ligarModoTeste(true); navigate('/'); }}>Ver como booster</button>
+        </div>
+      </div>
 
       <details className="card limite-card">
         <summary>Configuração da fila <span className="muted">limite de {filaLimite || 0} pedidos</span></summary>
