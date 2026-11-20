@@ -724,9 +724,9 @@ export default function AdminDashboard() {
       </div>
 
       <details className="card limite-card">
-        <summary>Configuração da fila <span className="muted">limite de {filaLimite || 0} pedidos</span></summary>
+        <summary>Limite de pedidos <span className="muted">{filaLimite || 0} ao mesmo tempo</span></summary>
         <div className="limite-linha">
-          <label htmlFor="limite-fila"><strong>Limite da fila</strong></label>
+          <label htmlFor="limite-fila"><strong>Pedidos ao mesmo tempo</strong></label>
           <input
             id="limite-fila"
             type="number"
@@ -746,8 +746,9 @@ export default function AdminDashboard() {
           )}
         </div>
         <p className="muted limite-nota">
-          Ao atingir esse número de pedidos em produção, os clientes não conseguem enviar novos
-          pedidos até abrir uma vaga.
+          Conta todos os pedidos em andamento: desde o envio (a orçar, esperando o cliente, esperando o pagamento) até
+          a produção. Ao atingir esse número, os clientes não conseguem enviar novos pedidos até abrir uma vaga. A vaga
+          volta quando o pedido é concluído, recusado, cancelado, expira ou é apagado.
         </p>
         {site && (
           <div className="aviso-pausa">

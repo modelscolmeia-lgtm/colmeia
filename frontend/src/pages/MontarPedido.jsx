@@ -593,9 +593,9 @@ export default function MontarPedido() {
 
         {fila?.cheia && (
           <div className="aviso" style={{ marginTop: 12 }}>
-            <Icone nome="aviso" /> <strong>A fila está cheia no momento</strong> (máximo de {fila.limite} pedidos em
-            produção ao mesmo tempo). Não é possível enviar um novo pedido agora — volte em breve,
-            assim que o artista liberar uma vaga.
+            <Icone nome="aviso" /> <strong>Os pedidos estão fechados no momento</strong> (já temos {fila.limite} pedidos
+            em andamento). Não é possível enviar um novo pedido agora — volte em breve, assim que o artista liberar
+            uma vaga.
           </div>
         )}
 
@@ -615,7 +615,7 @@ export default function MontarPedido() {
               disabled={fila?.cheia || envioBloqueado}
               title={
                 envioBloqueado ? 'Pedidos só para boosters do servidor do Discord'
-                  : fila?.cheia ? 'A fila está cheia no momento' : undefined
+                  : fila?.cheia ? 'Os pedidos estão fechados no momento' : undefined
               }
             >
               {semPermissao ? 'Só para boosters' : conferindoBoost ? 'Conferindo...' : 'Revisar e enviar'}
