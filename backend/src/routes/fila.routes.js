@@ -1,14 +1,14 @@
 import { Router } from 'express';
 import Pedido from '../models/Pedido.js';
 import { autenticar } from '../middleware/auth.js';
-import { getLimiteFila, contarFila } from '../services/fila.js';
+import { getLimiteFila, contarPedidosAbertos } from '../services/fila.js';
 
 const router = Router();
 
-// GET /api/fila/status — quantos pedidos há na fila e se ela está cheia (bloqueia novos pedidos).
+// GET /api/fila/status — quantos pedidos abertos há e se o limite foi atingido (bloqueia novos pedidos).
 router.get('/status', autenticar, async (req, res) => {
   try {
-    const [emFila, limite] = await Promise.all([contarFila(), getLimiteFila()]);
+    const [emFila, limite] = await Promise.all([contarPedidosAbertos(), getLimiteFila()]);
     res.json({ emFila, limite, cheia: emFila >= limite });
   } catch (err) {
     res.status(500).json({ erro: 'Erro ao consultar a fila', detalhe: err.message });

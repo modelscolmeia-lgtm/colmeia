@@ -27,7 +27,16 @@ export async function setLimiteFila(n) {
   return c.filaLimite;
 }
 
-// Quantos pedidos estão hoje na fila de produção (contam para o limite).
+// Pedidos "abertos": do envio até terminar (ainda a orçar, esperando o cliente, esperando o pagamento, na fila
+// ou em produção). É isso que o limite conta: cada pedido segura uma vaga desde o momento em que é enviado,
+// e a vaga volta quando ele é concluído, recusado, cancelado, expirado ou apagado.
+export const STATUS_ABERTOS = ['pendente_aprovacao', 'orcado', 'aguardando_pagamento', 'fila_producao', 'em_producao'];
+
+export function contarPedidosAbertos() {
+  return Pedido.countDocuments({ status: { $in: STATUS_ABERTOS } });
+}
+
+// Quantos pedidos estão hoje só na fila de produção (já pagos).
 export function contarFila() {
   return Pedido.countDocuments({ status: { $in: ['fila_producao', 'em_producao'] } });
 }

@@ -11,7 +11,7 @@ import {
   notificarArtistaPedidoAceito,
 } from '../services/email.js';
 import { abrirTicket, postarNoTicket, avisarArtistas } from '../services/discord.js';
-import { contarFila, getLimiteFila } from '../services/fila.js';
+import { contarPedidosAbertos, getLimiteFila, STATUS_ABERTOS } from '../services/fila.js';
 import { getSite } from '../services/site.js';
 import { podePedir } from '../services/booster.js';
 import Tipo from '../models/Tipo.js';
@@ -76,12 +76,11 @@ router.post('/', autenticar, async (req, res) => {
       return res.status(400).json({ erro: 'É necessário aceitar o termo para enviar o pedido' });
     }
 
-    // Fila cheia? Bloqueia novos pedidos até abrir vaga.
+    // Limite de pedidos abertos: bloqueia novos pedidos até abrir vaga.
     const limiteFila = await getLimiteFila();
-    if ((await contarFila()) >= limiteFila) {
-      return res.status(409).json({
-        erro: `A fila de produção está cheia (${limiteFila} pedidos ao mesmo tempo). Aguarde abrir uma vaga para enviar um novo pedido.`,
-      });
+    const mensagemCheia = `Os pedidos estão fechados no momento: já temos ${limiteFila} pedidos em andamento. Aguarde abrir uma vaga para enviar o seu.`;
+    if ((await contarPedidosAbertos()) >= limiteFila) {
+      return res.status(409).json({ erro: mensagemCheia });
     }
 
     const dados = {
@@ -117,8 +116,19 @@ router.post('/', autenticar, async (req, res) => {
       return res.status(400).json({ erro: 'O pedido precisa ter pelo menos um item' });
     }
 
-    dados.numero = await Counter.proximo('pedido'); // número sequencial (#42)
     const pedido = await Pedido.create(dados);
+
+    // Vários pedidos podem chegar no mesmo instante e passar na conferência de cima. Aqui cada pedido vê a
+    // sua posição entre os abertos (por ordem de criação): só os que cabem no limite ficam, os de fora são
+    // desfeitos. Assim o limite nunca é ultrapassado, nem com muita gente enviando ao mesmo tempo.
+    const posicao = await Pedido.countDocuments({ status: { $in: STATUS_ABERTOS }, _id: { $lte: pedido._id } });
+    if (posicao > limiteFila) {
+      await Pedido.deleteOne({ _id: pedido._id });
+      return res.status(409).json({ erro: mensagemCheia });
+    }
+
+    pedido.numero = await Counter.proximo('pedido'); // número sequencial (#42)
+    await pedido.save();
     const completo = await popularPedido(Pedido.findById(pedido._id));
 
     // notificações (fire-and-forget)
