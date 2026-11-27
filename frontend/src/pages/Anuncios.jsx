@@ -5,7 +5,7 @@ import EstadoVazio from '../components/EstadoVazio';
 import Icone from '../components/Icone';
 import Modal from '../components/Modal';
 import Lightbox from '../components/Lightbox';
-import MidiaAnuncio, { TextoComLinks } from '../components/MidiaAnuncio';
+import MidiaAnuncio, { TextoComLinks, semLinks } from '../components/MidiaAnuncio';
 import { useAuth } from '../context/AuthContext';
 import { useDialog } from '../context/DialogProvider';
 import { api } from '../services/api';
@@ -173,7 +173,7 @@ export default function Anuncios() {
                 </span>
               </div>
               <h2 className="anuncio-titulo">{a.titulo}</h2>
-              {a.conteudo && <p className="anuncio-texto"><TextoComLinks texto={a.conteudo} /></p>}
+              {semLinks(a.conteudo, a.midias) && <p className="anuncio-texto"><TextoComLinks texto={semLinks(a.conteudo, a.midias)} /></p>}
               {a.midias?.length > 0 && (
                 <div className="anuncio-midias">
                   {a.midias.map((m) => <MidiaAnuncio key={m.url} midia={m} onAmpliar={setAmpliar} />)}

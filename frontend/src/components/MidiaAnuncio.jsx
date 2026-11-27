@@ -42,6 +42,17 @@ export default function MidiaAnuncio({ midia, onAmpliar }) {
   );
 }
 
+// O texto do anúncio sem os links que já aparecem como vídeo/imagem logo abaixo (para não mostrar o endereço cru).
+export function semLinks(texto, midias) {
+  let t = String(texto || '');
+  [...(midias || [])]
+    .map((m) => m.url)
+    .filter(Boolean)
+    .sort((a, b) => b.length - a.length)
+    .forEach((url) => { t = t.split(url).join(''); });
+  return t.replace(/ {2,}/g, ' ').replace(/[ \t]+$/gm, '').replace(/\n{3,}/g, '\n\n').trim();
+}
+
 // O texto do anúncio com os links clicáveis.
 export function TextoComLinks({ texto }) {
   const partes = String(texto || '').split(/(https?:\/\/[^\s<>"']+)/gi);
