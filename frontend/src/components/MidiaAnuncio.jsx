@@ -2,7 +2,8 @@
 // para outros sites, o link para abrir.
 const PLAYERS = {
   youtube: (m) => `https://www.youtube-nocookie.com/embed/${m.ref}`,
-  tiktok: (m) => `https://www.tiktok.com/embed/v2/${m.ref}`,
+  // player só com o vídeo (o "embed" completo deixava uma sobra branca embaixo)
+  tiktok: (m) => `https://www.tiktok.com/player/v1/${m.ref}`,
   instagram: (m) => `https://www.instagram.com/${m.ref}/embed`,
   vimeo: (m) => `https://player.vimeo.com/video/${m.ref}`,
 };

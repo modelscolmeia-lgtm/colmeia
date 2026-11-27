@@ -480,7 +480,7 @@ td:last-child .muted, td:last-child .preco { white-space: nowrap; }
 .anuncio-midias .anuncio-img { margin-top: 0; }
 .midia-quadro { width: 100%; max-width: 560px; aspect-ratio: 16 / 9; overflow: hidden; background: var(--sup-3); border: 1px solid var(--borda-2); border-radius: var(--raio-p); }
 .midia-quadro.vertical { max-width: 325px; aspect-ratio: 9 / 16; }
-.midia-quadro.tiktok, .midia-quadro.instagram { aspect-ratio: auto; height: 740px; }
+.midia-quadro.instagram { aspect-ratio: auto; height: 740px; }
 .midia-quadro iframe { display: block; width: 100%; height: 100%; border: 0; }
 .midia-video { display: block; width: 100%; max-width: 560px; max-height: 520px; background: #000; border-radius: var(--raio-p); }
 .midia-link { display: inline-flex; align-items: center; min-height: 44px; padding: 8px 14px; overflow-wrap: anywhere; color: var(--mel-l); background: var(--sup-2); border: 1px solid var(--borda-2); border-radius: var(--raio-p); }
