@@ -9,6 +9,18 @@ export function extrairLinks(texto) {
   return [...new Set(limpos)].slice(0, MAXIMO);
 }
 
+// O texto do anúncio sem os links que já aparecem como vídeo/imagem (para não mostrar o endereço cru).
+// Os mais compridos saem primeiro, para um link que é começo de outro não deixar sobra.
+export function semLinks(texto, midias) {
+  let t = String(texto || '');
+  [...(midias || [])]
+    .map((m) => m.url)
+    .filter(Boolean)
+    .sort((a, b) => b.length - a.length)
+    .forEach((url) => { t = t.split(url).join(''); });
+  return t.replace(/ {2,}/g, ' ').replace(/[ \t]+$/gm, '').replace(/\n{3,}/g, '\n\n').trim();
+}
+
 function classificar(url) {
   let u;
   try {

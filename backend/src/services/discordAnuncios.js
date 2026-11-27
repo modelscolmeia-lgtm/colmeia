@@ -6,6 +6,7 @@
 //   DISCORD_WEBHOOK_ANUNCIOS  endereço do webhook do canal (https://discord.com/api/webhooks/...)
 //   APP_URL                   endereço do site, usado no link do anúncio
 import Anuncio from '../models/Anuncio.js';
+import { semLinks } from './midias.js';
 
 const cfg = () => ({
   webhook: (process.env.DISCORD_WEBHOOK_ANUNCIOS || '').trim(),
@@ -28,7 +29,7 @@ function montar(a) {
   const { site } = cfg();
   const embed = {
     title: `${e.emoji} ${a.titulo}`.slice(0, 256),
-    description: String(a.conteudo || '').slice(0, 4000) || undefined,
+    description: semLinks(a.conteudo, a.midias).slice(0, 4000) || undefined, // os links vão na segunda mensagem
     color: e.cor,
     author: { name: `${a.autorNome || 'Colmeia'}${e.rotulo ? ` · ${e.rotulo}` : ''}`.slice(0, 256) },
     footer: { text: 'Colmeia · Anúncios' },
@@ -55,8 +56,21 @@ export function linkParaDiscord(midia) {
 
 // Segunda mensagem, só com os links: o Discord só monta a prévia do vídeo/imagem (TikTok, YouTube...) quando o
 // link vai solto no texto de uma mensagem sem o quadro do anúncio. Nunca marca ninguém.
+// Cada link vira um texto clicável curto: o endereço fica escondido e o Discord continua montando a prévia.
+const ROTULOS = {
+  tiktok: '▶ Assistir ao TikTok',
+  youtube: '▶ Assistir no YouTube',
+  instagram: '▶ Ver no Instagram',
+  vimeo: '▶ Assistir no Vimeo',
+  video: '▶ Assistir ao vídeo',
+  imagem: '🖼️ Ver imagem',
+  link: '🔗 Abrir link',
+};
+
 function montarLinks(a) {
-  const links = (a.midias || []).map(linkParaDiscord).filter(Boolean);
+  const links = (a.midias || [])
+    .filter((m) => m.url)
+    .map((m) => `[${ROTULOS[m.tipo] || ROTULOS.link}](${linkParaDiscord(m).replace(/\)/g, '%29')})`);
   if (!links.length) return null;
   return { content: links.join('\n').slice(0, 2000), allowed_mentions: { parse: [] } };
 }
