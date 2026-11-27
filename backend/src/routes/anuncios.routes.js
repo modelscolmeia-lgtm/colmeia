@@ -9,7 +9,7 @@ router.get('/', async (req, res) => {
     const itens = await Anuncio.find()
       .sort({ fixado: -1, createdAt: -1 })
       .limit(200)
-      .select('titulo conteudo importancia imagem fixado autorNome createdAt updatedAt')
+      .select('titulo conteudo importancia imagem midias fixado autorNome createdAt updatedAt')
       .lean();
     res.json(itens);
   } catch (err) {

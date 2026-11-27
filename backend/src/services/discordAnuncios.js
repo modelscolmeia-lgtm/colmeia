@@ -43,6 +43,31 @@ function montar(a) {
   };
 }
 
+// Segunda mensagem, só com os links: o Discord só monta a prévia do vídeo/imagem (TikTok, YouTube...) quando o
+// link vai solto no texto de uma mensagem sem o quadro do anúncio. Nunca marca ninguém.
+function montarLinks(a) {
+  const links = (a.midias || []).map((m) => m.url).filter(Boolean);
+  if (!links.length) return null;
+  return { content: links.join('\n').slice(0, 2000), allowed_mentions: { parse: [] } };
+}
+
+async function sincronizarLinks(a) {
+  const corpo = montarLinks(a);
+  if (!corpo) {
+    if (!a.discordMsgLinks) return;
+    await chamar('DELETE', `/messages/${a.discordMsgLinks}`);
+    a.discordMsgLinks = undefined;
+    await a.save();
+    return;
+  }
+  if (a.discordMsgLinks && (await chamar('PATCH', `/messages/${a.discordMsgLinks}`, corpo))) return;
+  const msg = await chamar('POST', '?wait=true', corpo);
+  if (msg?.id) {
+    a.discordMsgLinks = String(msg.id);
+    await a.save();
+  }
+}
+
 // Uma chamada ao webhook. Espera e tenta de novo uma vez se o Discord pedir calma.
 async function chamar(metodo, sufixo, corpo, tentativa = 0) {
   const opcoes = { method: metodo };
@@ -71,7 +96,9 @@ export async function sincronizar(id) {
     if (a.discordMarcar === 'nao') {
       if (a.discordMsg) {
         await chamar('DELETE', `/messages/${a.discordMsg}`);
+        if (a.discordMsgLinks) await chamar('DELETE', `/messages/${a.discordMsgLinks}`);
         a.discordMsg = undefined;
+        a.discordMsgLinks = undefined;
         await a.save();
         return { estado: 'removido' };
       }
@@ -80,7 +107,10 @@ export async function sincronizar(id) {
     const corpo = montar(a);
     if (a.discordMsg) {
       const r = await chamar('PATCH', `/messages/${a.discordMsg}`, corpo); // editar não pinga de novo
-      if (r) return { estado: 'atualizado' };
+      if (r) {
+        await sincronizarLinks(a);
+        return { estado: 'atualizado' };
+      }
       // apagaram a mensagem no Discord: manda de novo
     }
     const msg = await chamar('POST', '?wait=true', corpo);
@@ -88,6 +118,7 @@ export async function sincronizar(id) {
       a.discordMsg = String(msg.id);
       await a.save();
     }
+    await sincronizarLinks(a);
     return { estado: 'enviado' };
   } catch (e) {
     console.error('Anúncio no Discord:', e.message);

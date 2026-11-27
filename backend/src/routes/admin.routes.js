@@ -17,6 +17,7 @@ import { getSite, setSite } from '../services/site.js';
 import Portfolio from '../models/Portfolio.js';
 import PortfolioOculto from '../models/PortfolioOculto.js';
 import Anuncio from '../models/Anuncio.js';
+import { lerMidias } from '../services/midias.js';
 import PedidoLiberado from '../models/PedidoLiberado.js';
 import { sincronizar, apagarNoDiscord, webhookAtivo, MARCAR } from '../services/discordAnuncios.js';
 import { salvarImagem } from '../services/upload.js';
@@ -122,7 +123,8 @@ router.post('/anuncios', async (req, res) => {
     const { erro, dados } = lerAnuncio(req.body);
     if (erro) return res.status(400).json({ erro });
     const autor = await User.findById(req.usuario.id).select('nome').lean();
-    const anuncio = await Anuncio.create({ ...dados, autorNome: autor?.nome || 'Colmeia' });
+    const midias = await lerMidias(dados.conteudo);
+    const anuncio = await Anuncio.create({ ...dados, midias, autorNome: autor?.nome || 'Colmeia' });
     const discord = await sincronizar(anuncio._id);
     res.status(201).json({ anuncio: await Anuncio.findById(anuncio._id).lean(), discord });
   } catch (err) {
@@ -138,7 +140,7 @@ router.put('/anuncios/:id', async (req, res) => {
     if (!anuncio) return res.status(404).json({ erro: 'Anúncio não encontrado' });
     // Só avisa com @everyone de novo se ainda não tinha ido ao Discord: editar não pinga ninguém.
     if (anuncio.discordMsg && dados.discordMarcar !== 'nao') dados.discordMarcar = anuncio.discordMarcar;
-    anuncio.set({ ...dados, imagem: dados.imagem });
+    anuncio.set({ ...dados, imagem: dados.imagem, midias: await lerMidias(dados.conteudo) });
     await anuncio.save();
     const discord = await sincronizar(anuncio._id);
     res.json({ anuncio: await Anuncio.findById(anuncio._id).lean(), discord });
@@ -162,6 +164,7 @@ router.delete('/anuncios/:id', async (req, res) => {
     const anuncio = await Anuncio.findByIdAndDelete(req.params.id);
     if (!anuncio) return res.status(404).json({ erro: 'Anúncio não encontrado' });
     await apagarNoDiscord(anuncio.discordMsg);
+    await apagarNoDiscord(anuncio.discordMsgLinks);
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ erro: 'Erro ao apagar o anúncio', detalhe: err.message });
