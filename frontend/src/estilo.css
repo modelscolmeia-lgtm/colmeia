@@ -473,3 +473,14 @@ td:last-child .muted, td:last-child .preco { white-space: nowrap; }
 .faixa-teste { position: sticky; top: 0; z-index: 60; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px 16px; padding: 8px 14px; color: #1c1300; background: var(--mel); font-size: 0.92rem; }
 .faixa-teste-acoes { display: inline-flex; flex-wrap: wrap; gap: 6px; }
 .faixa-teste button.secundario { color: #1c1300; background: rgba(255, 255, 255, 0.55); border-color: rgba(28, 19, 0, 0.35); }
+
+/* Links com vídeo/imagem nos anúncios */
+.anuncio-texto a { color: var(--mel-l); overflow-wrap: anywhere; }
+.anuncio-midias { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 12px; margin-top: 12px; }
+.anuncio-midias .anuncio-img { margin-top: 0; }
+.midia-quadro { width: 100%; max-width: 560px; aspect-ratio: 16 / 9; overflow: hidden; background: var(--sup-3); border: 1px solid var(--borda-2); border-radius: var(--raio-p); }
+.midia-quadro.vertical { max-width: 325px; aspect-ratio: 9 / 16; }
+.midia-quadro.tiktok, .midia-quadro.instagram { aspect-ratio: auto; height: 740px; }
+.midia-quadro iframe { display: block; width: 100%; height: 100%; border: 0; }
+.midia-video { display: block; width: 100%; max-width: 560px; max-height: 520px; background: #000; border-radius: var(--raio-p); }
+.midia-link { display: inline-flex; align-items: center; min-height: 44px; padding: 8px 14px; overflow-wrap: anywhere; color: var(--mel-l); background: var(--sup-2); border: 1px solid var(--borda-2); border-radius: var(--raio-p); }

@@ -5,6 +5,7 @@ import EstadoVazio from '../components/EstadoVazio';
 import Icone from '../components/Icone';
 import Modal from '../components/Modal';
 import Lightbox from '../components/Lightbox';
+import MidiaAnuncio, { TextoComLinks } from '../components/MidiaAnuncio';
 import { useAuth } from '../context/AuthContext';
 import { useDialog } from '../context/DialogProvider';
 import { api } from '../services/api';
@@ -172,7 +173,12 @@ export default function Anuncios() {
                 </span>
               </div>
               <h2 className="anuncio-titulo">{a.titulo}</h2>
-              {a.conteudo && <p className="anuncio-texto">{a.conteudo}</p>}
+              {a.conteudo && <p className="anuncio-texto"><TextoComLinks texto={a.conteudo} /></p>}
+              {a.midias?.length > 0 && (
+                <div className="anuncio-midias">
+                  {a.midias.map((m) => <MidiaAnuncio key={m.url} midia={m} onAmpliar={setAmpliar} />)}
+                </div>
+              )}
               {a.imagem && (
                 <button type="button" className="anuncio-img" onClick={() => setAmpliar(imagemLeve(a.imagem, 1600))} aria-label="Ampliar a imagem do anúncio">
                   <img src={imagemLeve(a.imagem, 1000)} alt="" loading="lazy" decoding="async" />
@@ -213,6 +219,9 @@ export default function Anuncios() {
           <label htmlFor="an-texto">
             Mensagem
             <textarea id="an-texto" rows={5} value={f.conteudo} maxLength={4000} onChange={(e) => set('conteudo', e.target.value)} />
+            <span className="muted" style={{ fontWeight: 400 }}>
+              Pode colar links (TikTok, YouTube, Instagram, imagem ou vídeo): eles aparecem no anúncio e no Discord. Até 5.
+            </span>
           </label>
           <label htmlFor="an-imp">
             Importância
