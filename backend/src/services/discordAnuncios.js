@@ -43,10 +43,20 @@ function montar(a) {
   };
 }
 
+// O TikTok entrega ao Discord só a imagem de capa. Para o vídeo tocar dentro do Discord, o link do TikTok vai
+// (só no Discord; o site continua com o oficial) por um conversor gratuito de terceiros, o tnktok.com. Se ele
+// sair do ar ou mudar, dá para trocar o endereço em TIKTOK_PREVIA_DOMINIO, ou desligar com "nao".
+export function linkParaDiscord(midia) {
+  const dominio = (process.env.TIKTOK_PREVIA_DOMINIO || 'tnktok.com').trim();
+  if (midia.tipo !== 'tiktok' || !midia.ref || dominio === 'nao') return midia.url;
+  const autor = /tiktok\.com\/(@[\w.-]+)\//i.exec(midia.url || '')?.[1] || '@_'; // link curto não traz o autor
+  return `https://www.${dominio}/${autor}/video/${midia.ref}`;
+}
+
 // Segunda mensagem, só com os links: o Discord só monta a prévia do vídeo/imagem (TikTok, YouTube...) quando o
 // link vai solto no texto de uma mensagem sem o quadro do anúncio. Nunca marca ninguém.
 function montarLinks(a) {
-  const links = (a.midias || []).map((m) => m.url).filter(Boolean);
+  const links = (a.midias || []).map(linkParaDiscord).filter(Boolean);
   if (!links.length) return null;
   return { content: links.join('\n').slice(0, 2000), allowed_mentions: { parse: [] } };
 }
